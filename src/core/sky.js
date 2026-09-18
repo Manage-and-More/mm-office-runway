@@ -12,7 +12,8 @@ import * as THREE from "three";
 const SKY_STOPS = [
   { at: 0, top: "#8fe0ff", bottom: "#fff4d6", accent: "#2fd27a" },
   { at: 0.25, top: "#8fd3ff", bottom: "#fff1e0", accent: "#36c6f4" },
-  { at: 0.5, top: "#ffc98a", bottom: "#ffeedd", accent: "#ffa62b" },
+  { at: 0.38, top: "#b7bdff", bottom: "#ffe6d2", accent: "#9b7bff" }, // periwinkle, so blue → orange never goes grey
+  { at: 0.5, top: "#ffb58a", bottom: "#ffe9d6", accent: "#ffa62b" },
   { at: 0.7, top: "#b58ce0", bottom: "#ffb48a", accent: "#ff5a6e" },
   { at: 0.84, top: "#262d6e", bottom: "#6a55a8", accent: "#ff7a8a" },
   { at: 1, top: "#171b47", bottom: "#4a3d8a", accent: "#ff7a8a" },
@@ -141,6 +142,13 @@ export function createSky({ scene, renderer, camera, sun, hemi, horizonPoint, re
     const h = innerHeight;
     const horizonY = Math.round((1 - (horizon.y + 1) / 2) * h);
     setVar("--horizon", `${horizonY}px`);
+
+    // Fog starts just past the island, however far the camera has pulled back (it does on phones).
+    if (scene.fog) {
+      const d = camera.position.length();
+      scene.fog.near = d + 8;
+      scene.fog.far = d + 45;
+    }
 
     if (Math.abs(stress - lastStress) < 0.001) return;
     lastStress = stress;
