@@ -15,7 +15,7 @@ export function seededRandom(seed = 1) {
 }
 function chooseActivity(random) {
   const chance = random();
-  return chance < 0.32 ? 'walk' : chance < 0.68 ? 'eat' : chance < 0.90 ? 'wave' : 'cheer';
+  return chance < 0.52 ? 'walk' : chance < 0.78 ? 'eat' : chance < 0.90 ? 'wave' : 'cheer';
 }
 function actionLength(action, random) {
   if (action === 'idle') return 7 + random() * 15;
@@ -49,6 +49,7 @@ export function createStandardController({ seed = 1, reducedMotion = false, stre
     pose,
     get action() { return action; },
     get pace() { return pace; },
+    planWalk(seconds) { if (action === 'walk' && Number.isFinite(seconds)) remaining = Math.max(1, Math.min(60, seconds)); },
     resumeFromPose(lastPose) { begin('idle'); blendPoses(lastPose, lastPose, 1, from); blendPoses(lastPose, lastPose, 1, pose); },
     finishActivity() { if (action !== 'idle') begin('idle'); },
     /** Interrupt with a one-off reaction (e.g. cheer on a donation) for `cycles` loops of the motion. */

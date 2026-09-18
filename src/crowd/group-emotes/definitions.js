@@ -4,7 +4,7 @@ export const GROUP_EMOTES = [
   {
     id: 'garden-dance', label: 'Gather & dance',
     phases: [
-      { type: 'formation', formation: 'garden-rings', timeout: 40 },
+      { type: 'formation', formation: 'garden-rings', timeout: 80 },
       { type: 'motion', motion: 'dance', duration: 12, speed: 1, stagger: 0, facing: 'center' },
       { type: 'motion', motion: 'cheer', duration: 1.8, facing: 'front' },
       { type: 'release', duration: 0.6 },

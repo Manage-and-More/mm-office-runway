@@ -135,10 +135,34 @@ export function buildGarden(root, footprints, reducedMotion = false, navigation)
   root.name = 'signet-garden';
   root.userData.plantCount = points.length;
   root.userData.bedCount = footprints.length;
-  const furniture = addGardenFurniture(root, geometries, materials, obstacles);
+  function openPath(x, z) {
+    const p = new THREE.Vector2(x, -z);
+    for (const bed of footprints) {
+      if (inside(p, bed.contour) && !bed.holes.some(hole => inside(p, hole))) return false;
+      if (edgeDistance(p, bed.contour) < 0.25 || bed.holes.some(hole => edgeDistance(p, hole) < 0.25)) return false;
+    }
+    return true;
+  }
+  const furniture = addGardenFurniture(root, geometries, materials, obstacles, openPath);
+  addPerimeterNature(root, geometries, materials);
   root.userData.benches = furniture.benches;
   root.userData.lanterns = furniture.lanterns;
-  const unregister = navigation?.register('garden', obstacles);
+  let unregister = navigation?.register('garden', obstacles);
+  const destinations = [];
+  if (navigation) {
+    const candidates = [...furniture.approaches];
+    for (let x = -6.4; x <= 6.4; x += 0.65) for (let z = -6.4; z <= 6.4; z += 0.65) {
+      if (Math.hypot(x, z) < 6.7 && openPath(x, z)) candidates.push({ x, z });
+    }
+    for (const place of candidates) {
+      if (destinations.some(other => Math.hypot(other.x-place.x, other.z-place.z) < 1.4)) continue;
+      if (navigation.findPath({x:9.8,z:0}, place)) destinations.push(place);
+      if (destinations.length >= 18) break;
+    }
+    unregister();
+    unregister = navigation.register('garden', obstacles, destinations);
+  }
+  root.userData.pathDestinations = destinations;
   const settings = { breeze: !reducedMotion };
   return {
     update({ time }) {
@@ -170,7 +194,7 @@ export function buildGarden(root, footprints, reducedMotion = false, navigation)
 }
 
 
-function addGardenFurniture(root, geometries, materials, obstacles) {
+function addGardenFurniture(root, geometries, materials, obstacles, openPath) {
   const wood = new THREE.MeshStandardMaterial({ color: '#b18658', roughness: 0.87 });
   const metal = new THREE.MeshStandardMaterial({ color: '#394c47', roughness: 0.6 });
   const lamp = new THREE.MeshStandardMaterial({ color: '#fff0bf', emissive: '#ffc56b', emissiveIntensity: 0.65, roughness: 0.4 });
@@ -182,9 +206,24 @@ function addGardenFurniture(root, geometries, materials, obstacles) {
     mesh.position.set(x, y, z); mesh.scale.set(sx, sy, sz);
     mesh.castShadow = mesh.receiveShadow = true; group.add(mesh);
   }
+  const candidates = [], chosen = [], approaches = [];
+  for (let x = -6; x <= 6; x += 0.30) for (let z = -6; z <= 6; z += 0.30) {
+    if (Math.hypot(x,z) > 6.2 || Math.hypot(x,z) < 1.3) continue;
+    const heading = Math.atan2(x,z) + Math.PI;
+    let fits = true;
+    for (const px of [-0.7,0,0.7]) for (const pz of [-0.4,0,0.75]) {
+      if (!openPath(x+Math.cos(heading)*px+Math.sin(heading)*pz,z-Math.sin(heading)*px+Math.cos(heading)*pz)) fits=false;
+    }
+    if (fits) candidates.push({x,z,heading});
+  }
   for (let i = 0; i < 4; i++) {
-    const angle = Math.PI / 4 + i * Math.PI / 2;
-    const x = Math.sin(angle) * 5.65, z = Math.cos(angle) * 5.65;
+    const desiredAngle = Math.PI/4+i*Math.PI/2;
+    candidates.sort((a,b) => Math.hypot(a.x-Math.sin(desiredAngle)*3.5,a.z-Math.cos(desiredAngle)*3.5)-Math.hypot(b.x-Math.sin(desiredAngle)*3.5,b.z-Math.cos(desiredAngle)*3.5));
+    const place = candidates.find(p=>chosen.every(q=>Math.hypot(p.x-q.x,p.z-q.z)>1.7));
+    if (!place) continue;
+    chosen.push(place);
+    const {x,z,heading} = place, angle = heading-Math.PI;
+    approaches.push({x:x+Math.sin(heading)*0.8,z:z+Math.cos(heading)*0.8});
     const bench = new THREE.Group(); bench.name = 'garden:bench';
     bench.position.set(x, 0, z); bench.rotation.y = angle + Math.PI;
     for (const side of [-1, 1]) part(bench, box, metal, side * 0.42, 0.2, 0, 0.06, 0.40, 0.38);
@@ -198,7 +237,7 @@ function addGardenFurniture(root, geometries, materials, obstacles) {
   }
   for (let i = 0; i < 6; i++) {
     const angle = i / 6 * Math.PI * 2;
-    const x = Math.sin(angle) * 5.35, z = Math.cos(angle) * 5.35;
+    const x = Math.sin(angle) * 7.75, z = Math.cos(angle) * 7.75;
     const lantern = new THREE.Group(); lantern.name = 'garden:lantern'; lantern.position.set(x, 0, z);
     part(lantern, cylinder, metal, 0, 0.07, 0, 0.14, 0.14, 0.14);
     part(lantern, cylinder, metal, 0, 0.62, 0, 0.035, 1.18, 0.035);
@@ -209,5 +248,41 @@ function addGardenFurniture(root, geometries, materials, obstacles) {
     root.add(lantern);
     obstacles.push({ contour: [{x:x-.16,z:z-.16},{x:x+.16,z:z-.16},{x:x+.16,z:z+.16},{x:x-.16,z:z+.16}] });
   }
-  return { benches: 4, lanterns: 6 };
+  return { benches: chosen.length, lanterns: 6, approaches };
+}
+
+
+// Low planting islands, rounded trees and rocks occupy the empty rim outside
+// the crowd's walking boundary. No billboard textures or extra point lights.
+function addPerimeterNature(root, geometries, materials) {
+  const random = randomSource();
+  const sphere = new THREE.IcosahedronGeometry(1, 1), trunk = new THREE.CylinderGeometry(0.055,0.075,1,7), patch = new THREE.CircleGeometry(1,24);
+  geometries.add(sphere); geometries.add(trunk); geometries.add(patch);
+  const greens = ['#789761','#64935b','#82a96a','#4f7b4f'].map(color => new THREE.MeshStandardMaterial({color,roughness:1}));
+  const stone = new THREE.MeshStandardMaterial({color:'#c9c4b8',roughness:1});
+  const bark = new THREE.MeshStandardMaterial({color:'#947354',roughness:1});
+  const flowers = new THREE.MeshStandardMaterial({color:'#efb7b8',roughness:1});
+  for(const mat of [...greens,stone,bark,flowers])materials.add(mat);
+  const group=new THREE.Group();group.name='garden:perimeter-landscaping';root.add(group);
+  function mesh(geometry,mat,x,y,z,sx,sy,sz) {
+    const part=new THREE.Mesh(geometry,mat);part.position.set(x,y,z);part.scale.set(sx,sy,sz);part.castShadow=part.receiveShadow=true;group.add(part);return part;
+  }
+  for(let i=0;i<22;i++) {
+    const angle=i/22*Math.PI*2, radius=12.05+(i%3)*0.25;
+    const x=Math.sin(angle)*radius,z=Math.cos(angle)*radius;
+    const lawn=mesh(patch,greens[0],x,.018,z,.64,.48,1);lawn.rotation.x=-Math.PI/2;
+    for(let shrub=0;shrub<4;shrub++) {
+      const a=shrub/4*Math.PI*2, r=.26;
+      mesh(sphere,greens[(i+shrub)%greens.length],x+Math.sin(a)*r,.22,z+Math.cos(a)*r,.20,.20+random()*.10,.22);
+    }
+    if(i%3===0) {
+      mesh(trunk,bark,x,.47,z,1,.9,1);
+      for(let lobe=0;lobe<3;lobe++)mesh(sphere,greens[(i+lobe)%greens.length],x+(lobe-1)*.22,1.05+(lobe%2)*.25,z,.37,.49,.38);
+    } else if(i%3===1) {
+      mesh(sphere,stone,x+.4,.12,z+.1,.22,.14,.19);
+      mesh(sphere,stone,x+.15,.08,z-.4,.14,.09,.12);
+    } else {
+      for(let bloom=0;bloom<5;bloom++)mesh(sphere,flowers,x+(random()-.5)*.65,.32,z+(random()-.5)*.6,.055,.06,.055);
+    }
+  }
 }

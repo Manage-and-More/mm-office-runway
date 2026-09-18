@@ -100,3 +100,14 @@ test('unreachable formations release safely without teleportation', () => {
   assert.equal(d.status.lastResult,'unreachable-formation');assert.equal(d.active,false);
   assert.deepEqual(people.map(p=>p.mii.position),before);
 });
+
+test('residents who cannot get through still join in, instead of stalling the occasion', () => {
+  const people = residents(), before = people.map(person => ({ ...person.mii.position }));
+  // Routes exist on paper, but nothing is ever walkable: everybody is boxed in.
+  const navigation = { findPath: (from, to) => [{ x: to.x, z: to.z }], segmentClear: () => false };
+  const d = createGroupDirector(people, { navigation });
+  d.play('garden-dance');
+  for (let i = 0; i < 400 && d.active; i++) d.update(0.1);
+  assert.equal(d.status.lastResult, 'completed');
+  assert.deepEqual(people.map(person => person.mii.position), before);
+});

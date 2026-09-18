@@ -3,7 +3,7 @@ import { GARDEN_RADIUS, CROWD_OUTER_RADIUS } from '../../contracts/module.js';
 export const FORMATIONS = {
   'garden-rings'(count) {
     const slots = [];
-    for (let radius = GARDEN_RADIUS + 1.4; slots.length < count && radius <= CROWD_OUTER_RADIUS - 0.5; radius += 1.2) {
+    for (let radius = GARDEN_RADIUS + 0.6; slots.length < count && radius <= CROWD_OUTER_RADIUS - 0.5; radius += 1.15) {
       const capacity = Math.floor(2 * Math.PI * radius / 1.15);
       const ringCount = Math.min(capacity, count - slots.length);
       for (let i = 0; i < ringCount; i++) {

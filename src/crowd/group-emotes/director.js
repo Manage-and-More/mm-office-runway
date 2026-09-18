@@ -2,7 +2,7 @@ import { createPose, sampleMotion, blendPoses } from '../motions.js';
 import { GROUP_EMOTES } from './definitions.js';
 import { FORMATIONS, assignSlots } from './formations.js';
 import { createRegistry } from './registry.js';
-import { moveToSlot, turnToward } from './navigation.js';
+import { moveToSlot, turnToward, resetNavigation } from './navigation.js';
 
 /** Independent of Three.js; residents provide position/rotation and a pose controller. */
 export function createGroupDirector(residents, { reducedMotion = false, navigation, definitions = GROUP_EMOTES, formations = FORMATIONS, onEvent = () => {} } = {}) {
@@ -37,7 +37,9 @@ export function createGroupDirector(residents, { reducedMotion = false, navigati
       const slots = formations[phase.formation](actors.length);
       const targets = assignSlots(residents.map(resident => resident.mii.position), slots);
       for (let i = 0; i < actors.length; i++) {
-        const actor = actors[i]; actor.target = targets[i]; actor.waypoint = 0;
+        const actor = actors[i];
+        resetNavigation(actor);
+        actor.target = targets[i];
         actor.route = navigation?.findPath(actor.resident.mii.position, actor.target) ?? null;
         if (navigation && !actor.route) { finish('unreachable-formation'); return; }
       }
@@ -75,13 +77,17 @@ export function createGroupDirector(residents, { reducedMotion = false, navigati
       const step = Number.isFinite(dt) ? Math.max(0, Math.min(dt, 0.1)) : 0;
       const phase = active.phases[phaseIndex], updating = revision;
       elapsed += step;
-      let arrived = true;
+      // Gathering is best effort: a resident who can't get through waits where
+      // it stands, so one boxed-in Mii never holds up the whole occasion.
+      let gathered = true;
       for (let i = 0; i < actors.length; i++) {
         const actor = actors[i];
         let motion = phase.motion ?? 'idle', clock = elapsed * (phase.speed ?? 1), participation = 1;
         if (phase.type === 'formation' && !reducedMotion) {
-          const done = moveToSlot(actor, actors, step, navigation);
-          arrived = arrived && done; motion = done ? 'idle' : 'walk'; clock = elapsed * 1.8;
+          const state = moveToSlot(actor, actors, step, navigation);
+          gathered = gathered && state !== 'moving';
+          motion = state === 'moving' ? 'walk' : 'idle';
+          clock = elapsed * 1.8;
         } else if (phase.type === 'motion') {
           const local = elapsed - (phase.stagger ?? 0) * i;
           participation = Math.max(0, Math.min(1, local / 0.3, (phase.duration - local) / 0.3));
@@ -111,7 +117,7 @@ export function createGroupDirector(residents, { reducedMotion = false, navigati
       }
       status.progress = Math.min(1, elapsed / duration);
       if (phase.type === 'formation') {
-        if (reducedMotion || arrived) enterPhase();
+        if (reducedMotion || gathered) enterPhase();
         else if (elapsed >= duration) finish('formation-timeout');
       } else if (elapsed >= duration) enterPhase();
       return true;

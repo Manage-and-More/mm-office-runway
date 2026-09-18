@@ -80,6 +80,6 @@
  */
 export const LOGO_CENTER_Y = 2.5;
 export const LOGO_RADIUS = 2.5; // Legacy sculpture radius.
-export const GARDEN_RADIUS = 5.2; // Ground-level planted centerpiece; paths between beds remain walkable.
+export const GARDEN_RADIUS = 7.6; // Ground-level planted centerpiece; paths between beds remain walkable.
 export const CROWD_INNER_RADIUS = 3.5;
 export const CROWD_OUTER_RADIUS = 11;

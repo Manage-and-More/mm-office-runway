@@ -44,6 +44,10 @@ function chooseDestination(resident, residents, navigation) {
   const mood = typeof s === 'number';
   const preferred = mood ? preferredHeading(resident, residents, s) : null;
   const stride = mood ? strideScale(controller.action === 'walk' ? s * 0.5 : s) : 1;
+  // Calm residents head for a named spot in the park — a bench, an opening
+  // between the beds — instead of only drifting a step or two. Cohesion and
+  // scatter keep priority, so a scared crowd still reacts to each other.
+  const places = preferred || (mood && s >= SCATTER_FROM) ? [] : navigation?.getDestinations?.() ?? [];
   for (let attempt = 0; attempt < 18; attempt++) {
     let angle = wanderer.random() * TAU;
     let distance = 0.85 + wanderer.random() * 0.85;
@@ -52,18 +56,27 @@ function chooseDestination(resident, residents, navigation) {
       else distance *= stride;
       distance *= 1 - attempt / 20; // long dashes are often blocked: shrink until something fits
     }
-    const x = mii.position.x + Math.sin(angle) * distance;
-    const z = mii.position.z + Math.cos(angle) * distance;
+    const place = places.length && wanderer.random() < 0.75 ? places[Math.floor(wanderer.random() * places.length)] : null;
+    const x = place ? place.x + (wanderer.random() - 0.5) * 0.55 : mii.position.x + Math.sin(angle) * distance;
+    const z = place ? place.z + (wanderer.random() - 0.5) * 0.55 : mii.position.z + Math.cos(angle) * distance;
     if (Math.hypot(x, z) > OUTER) continue;
     const route = navigation ? navigation.findPath(mii.position, { x, z }) : null;
     if (navigation ? !route : segmentDistanceSquared(0, 0, mii.position.x, mii.position.z, x, z) < INNER * INNER) continue;
     let clear = true;
     for (const other of residents) {
       if (other === resident) continue;
-      if (segmentDistanceSquared(other.mii.position.x, other.mii.position.z, mii.position.x, mii.position.z, x, z) < SPACE * SPACE) { clear = false; break; }
+      if ((navigation ? (other.mii.position.x - x) ** 2 + (other.mii.position.z - z) ** 2 : segmentDistanceSquared(other.mii.position.x, other.mii.position.z, mii.position.x, mii.position.z, x, z)) < SPACE * SPACE) { clear = false; break; }
       if (other.wanderer.walking && Math.hypot(other.wanderer.x - x, other.wanderer.z - z) < SPACE) { clear = false; break; }
     }
-    if (clear) { wanderer.x = x; wanderer.z = z; wanderer.route = route; wanderer.waypoint = 0; return true; }
+    if (clear) {
+      wanderer.x = x; wanderer.z = z; wanderer.route = route; wanderer.waypoint = 0; wanderer.blockedTime = 0;
+      if (route) {
+        let length = 0, previous = mii.position;
+        for (const point of route) { length += Math.hypot(point.x - previous.x, point.z - previous.z); previous = point; }
+        resident.controller.planWalk(length / (TRAVEL.walk * resident.controller.pace) + 5);
+      }
+      return true;
+    }
   }
   return false;
 }
@@ -90,15 +103,20 @@ export function updateWanderer(resident, residents, dt, navigation) {
   mii.rotation.y += turn * Math.min(1, step * 5 * (1 + 2 * (s ?? 0)));
   // Turn before moving, then ease into the stroll. Match speed to clip pacing. Scared residents turn on the run.
   if (Math.abs(turn) > 0.35 + 0.5 * (s ?? 0)) return;
-  const speed = s === null ? 0.27 : travelSpeed(controller.action, s);
+  const speed = s === null ? (navigation ? 0.34 : 0.27) : travelSpeed(controller.action, s);
   const travel = Math.min(distance, step * speed * controller.pace);
   const x = mii.position.x + dx / distance * travel;
   const z = mii.position.z + dz / distance * travel;
   if (navigation && !navigation.segmentClear(mii.position.x, mii.position.z, x, z)) { stop(); return; }
   for (const other of residents) {
     if (other !== resident && Math.hypot(other.mii.position.x - x, other.mii.position.z - z) < SPACE) {
-      stop(); return;
+      // Park corridors are single file: give the other one a moment to pass
+      // before abandoning this destination. Dashers redirect immediately.
+      wanderer.blockedTime = (wanderer.blockedTime ?? 0) + step;
+      if (dashing || wanderer.blockedTime > 2) stop();
+      return;
     }
   }
+  wanderer.blockedTime = 0;
   mii.position.x = x; mii.position.z = z;
 }

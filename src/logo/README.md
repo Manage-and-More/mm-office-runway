@@ -15,4 +15,8 @@ The garden remains stable across all financial moods and donation/loss events. I
 
 ## Walkable garden expansion
 
-The garden now uses `GARDEN_RADIUS = 5.2` (about twice the earlier footprint), with four wooden benches and six warm emissive lanterns. Furniture and beds register obstacles with core's optional navigation service. Open reachable spaces between the actual SVG contours remain walkable; benches are obstacles, not sitting interactions yet. Lanterns use emissive materials rather than extra shadow-casting point lights.
+The park now uses `GARDEN_RADIUS = 7.6`, so the signet's strokes read as a low maze the Miis walk through rather than a centrepiece they walk around. Bed heights stay low, so characters remain visible from the camera.
+
+Four wooden benches sit **inside** the signet, in open pockets found by searching the gaps between the actual SVG contours; each one also registers a path destination just in front of it, so residents walk over to them. Six lanterns stand on the park's outer edge. Beyond the crowd ring, `addPerimeterNature()` fills the previously empty rim with 22 planting islands: rounded trees, shrub clusters, rocks and flowers.
+
+All beds and furniture register as obstacles with core's optional navigation service, and the reachable gaps between them are registered as walk destinations. Benches are obstacles, not sitting interactions yet. Lanterns use emissive materials rather than extra shadow-casting point lights.
