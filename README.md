@@ -1,13 +1,27 @@
-# Number Orbit
+# MM Office Runway
 
-A static 3D page (Three.js) that shows one number from a spreadsheet. There is no build step and no backend, and it costs nothing to run.
+Manage & More is a student-led organization. We crowdfunded our office and now have to keep it. This page shows **how much runway the office has left**, in a way people actually notice.
+
+## The scene (planned)
+
+- The **Manage & More logo** sits in the middle, built in 3D.
+- **Mii-style avatars of donors** walk around it.
+- **Funds high:** avatars are happy and chill, and the logo is whole.
+- **Funds low:** avatars panic and run faster in different directions, and the logo **cracks and breaks apart**.
+- **Money added:** the logo pieces fly back together.
+
+> Current state: this is the starter scaffold (a placeholder 3D scene plus the data pipeline). The runway scene is being built next.
+
+## Architecture
+
+A static 3D page (Three.js) that reads one number from a spreadsheet. There is no build step and no backend, and it costs nothing to run.
 
 ```
 Google Sheet ──(published CSV, fetched by the browser every 60s)──▶ GitHub Pages site
                          └─ fallback: data.json in this repo
 ```
 
-## How it works
+### Stack
 
 | Piece | Choice | Why |
 |---|---|---|
@@ -25,7 +39,7 @@ When the number changes, the crystal pulses, the counter animates to the new val
    | A | B |
    |---|---|
    | label | value |
-   | Members | 1234 |
+   | Months of runway | 6 |
 
 2. Go to **File → Share → Publish to web**, choose that sheet, choose **Comma-separated values (.csv)**, then click **Publish** and copy the URL.
 3. Paste it into `sheetCsvUrl` in [`config.js`](config.js) and push.
