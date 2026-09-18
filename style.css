@@ -98,3 +98,46 @@ body {
   font-weight: 600;
   color: var(--muted);
 }
+
+.lab-link {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
+  color: var(--ink);
+  background: #ffffffd9;
+  border: 1px solid #d5dce5;
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 14px;
+  text-decoration: none;
+}
+.lab-link:hover, .lab-link:focus-visible { border-color: var(--accent); }
+
+.lobby-caption {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  text-align: center;
+  padding: 14px 24px;
+  border: 1px solid #e0e5eb;
+  border-radius: 16px;
+  background: #ffffffde;
+  color: var(--muted);
+  font-size: 14px;
+  pointer-events: none;
+}
+.lobby-state { color: #354c43; font-size: 15px; font-weight: 650; }
+.lobby-caption small { font-size: 11px; color: #788696; }
+@media (max-width: 850px) {
+  .lab-link { top: auto; bottom: 150px; right: 16px; font-size: 12px; }
+  .title { letter-spacing: .12em; }
+  .lobby-caption { bottom: 20px; font-size: 12px; }
+}

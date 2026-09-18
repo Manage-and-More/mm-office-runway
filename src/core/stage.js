@@ -12,27 +12,57 @@ export function createStage(canvas) {
   renderer.setClearColor(0x000000, 0);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xfff1e0, 30, 60);
 
   const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
-  const cameraHome = new THREE.Vector3(0, 7, 18);
-  const lookAt = new THREE.Vector3(0, 1.8, 0);
+  const cameraHome = new THREE.Vector3(0, 10.6, 19);
+  const lookAt = new THREE.Vector3(0, 0.9, 0);
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xc9b8f0, 1.6));
-  const sun = new THREE.DirectionalLight(0xfff4e0, 2.2);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xb5bcc7, 2.2));
+  const sun = new THREE.DirectionalLight(0xffffff, 2);
   sun.position.set(6, 12, 8);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.radius = 4;
+  sun.shadow.normalBias = 0.035;
+  sun.shadow.bias = -0.0001;
   Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14 });
   scene.add(sun);
 
-  scene.add(createIsland());
+  // A nearly white ceramic surface: quiet grout lines and fine grain.
+  // Generated once, no image download or repeating photo asset required.
+  const size = 256;
+  const pixels = new Uint8Array(size * size * 4);
+  let noise = 71;
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    noise = (Math.imul(noise, 1664525) + 1013904223) >>> 0;
+    const grain = ((noise >>> 24) / 255 - 0.5) * 4;
+    const seam = x < 2 || y < 2;
+    const bevel = x < 4 || y < 4 || x > size - 3 || y > size - 3;
+    const value = Math.round((seam ? 220 : bevel ? 238 : 248) + grain);
+    const offset = (y * size + x) * 4;
+    pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = value;
+    pixels[offset + 3] = 255;
+  }
+  const floorTexture = new THREE.DataTexture(pixels, size, size);
+  floorTexture.colorSpace = THREE.SRGBColorSpace;
+  floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+  floorTexture.repeat.set(ISLAND_RADIUS, ISLAND_RADIUS); // Two-world-unit tiles across the island.
+  floorTexture.magFilter = THREE.LinearFilter;
+  floorTexture.minFilter = THREE.LinearMipmapLinearFilter;
+  floorTexture.generateMipmaps = true;
+  floorTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  floorTexture.needsUpdate = true;
 
+  scene.add(createIsland(floorTexture));
+
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pointer = { x: 0, y: 0 };
   addEventListener("pointermove", (e) => {
+    if (reducedMotion) return;
     pointer.x = (e.clientX / innerWidth) * 2 - 1;
     pointer.y = (e.clientY / innerHeight) * 2 - 1;
   });
@@ -41,7 +71,9 @@ export function createStage(canvas) {
     renderer.setSize(innerWidth, innerHeight, false);
     camera.aspect = innerWidth / innerHeight;
     // Pull back on narrow screens so the whole crowd stays in view.
-    cameraHome.z = camera.aspect < 0.8 ? 28 : 18;
+    // Fit the full 22-unit crowd width, including on narrow phone screens.
+    cameraHome.z = Math.max(19, 11.2 / (Math.tan(THREE.MathUtils.degToRad(25)) * camera.aspect));
+    cameraHome.y = cameraHome.z * 0.56;
     camera.updateProjectionMatrix();
   }
   addEventListener("resize", resize);
@@ -59,13 +91,13 @@ export function createStage(canvas) {
 }
 
 // A floating pastel island: a darker rim underneath, a white plaza for the logo, confetti dots around the rim.
-function createIsland() {
+function createIsland(floorTexture) {
   const island = new THREE.Group();
   island.name = "island";
 
   const ground = new THREE.Mesh(
     new THREE.CircleGeometry(ISLAND_RADIUS, 64),
-    new THREE.MeshStandardMaterial({ color: 0xd8cdfa, roughness: 0.95 }),
+    new THREE.MeshStandardMaterial({ color: 0xffffff, map: floorTexture, bumpMap: floorTexture, bumpScale: 0.018, roughness: 0.93 }),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;

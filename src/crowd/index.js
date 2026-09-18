@@ -1,46 +1,58 @@
-// PLACEHOLDER crowd — the crowd workstream replaces this.
-// Shows the contract: calm wandering when funds are healthy, frantic running when in panic.
-import * as THREE from "three";
-import { CROWD_INNER_RADIUS, CROWD_OUTER_RADIUS } from "../contracts/module.js";
-import { buildMii } from "./mii.js";
+import { buildMii } from './mii.js';
+import { createStandardController } from './standard.js';
+import { createLobbyLayout, createDemoSpec } from './layout.js';
+import { createCrowdBatches } from './batches.js';
+import { createWanderer, updateWanderer } from './wander.js';
 
-const SPEED = { thriving: 0.5, calm: 0.8, worried: 1.8, panic: 4 };
-const RETARGET = { thriving: 6, calm: 5, worried: 2, panic: 0.7 }; // seconds between new destinations
+export const DEFAULT_CROWD_SIZE = 40;
 
-function randomSpot() {
-  const a = Math.random() * Math.PI * 2;
-  const r = CROWD_INNER_RADIUS + Math.random() * (CROWD_OUTER_RADIUS - CROWD_INNER_RADIUS);
-  return new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r);
-}
-
-/** @type {import("../contracts/module.js").CreateModule} */
-export default function createCrowd({ root, avatars, reducedMotion }) {
-  const walkers = avatars.map((spec) => {
-    const mii = buildMii(spec);
-    mii.position.copy(randomSpot());
-    root.add(mii);
-    return { mii, target: randomSpot(), timer: Math.random() * 3, phase: Math.random() * 10 };
-  });
-
-  const step = new THREE.Vector3();
+/** @type {import('../contracts/module.js').CreateModule} */
+export default function createCrowd({ root, avatars = [], reducedMotion }) {
+  // Only standard is implemented. Funds moods and donation events intentionally
+  // do not trigger panic/celebration yet. Those will get separate controllers.
+  const options = { people: DEFAULT_CROWD_SIZE, paused: false };
+  const stats = { state: 'standard', idle: 0, walk: 0, eat: 0, wave: 0, cheer: 0 };
+  const consented = avatars.filter(spec => spec?.consent?.public === true);
+  let residents = [], batches;
+  function rebuild() {
+    batches?.dispose();
+    const positions = createLobbyLayout(options.people);
+    residents = positions.map((position, index) => {
+      const mii = buildMii(consented[index] ?? createDemoSpec(index));
+      mii.position.set(position.x, 0, position.z);
+      mii.rotation.y = position.heading;
+      const controller = createStandardController({ seed: index * 3917 + 59, reducedMotion });
+      mii.userData.applyPose(controller.pose);
+      return { mii, controller, wanderer: createWanderer(index * 911 + 31, position) };
+    });
+    batches = createCrowdBatches(root, residents.map(resident => resident.mii));
+    batches.update();
+    root.userData.crowdSize = residents.length;
+    root.userData.demoCount = Math.max(0, residents.length - consented.length);
+    root.userData.state = 'standard';
+  }
+  rebuild();
   return {
-    update({ dt, time, state }) {
-      const speed = SPEED[state.mood] * (reducedMotion ? 0.3 : 1);
-      for (const w of walkers) {
-        w.timer -= dt;
-        if (w.timer <= 0 || w.mii.position.distanceTo(w.target) < 0.3) {
-          w.target = randomSpot();
-          w.timer = RETARGET[state.mood] * (0.5 + Math.random());
-        }
-        step.subVectors(w.target, w.mii.position).setY(0);
-        const dist = step.length();
-        if (dist > 0.01) {
-          step.multiplyScalar(Math.min(dist, speed * dt) / dist);
-          w.mii.position.add(step);
-          w.mii.rotation.y = Math.atan2(step.x, step.z);
-        }
-        w.mii.position.y = Math.abs(Math.sin(time * speed * 4 + w.phase)) * 0.06 * speed;
+    update({ dt }) {
+      if (options.paused) return;
+      stats.idle = stats.walk = stats.eat = stats.wave = stats.cheer = 0;
+      for (const resident of residents) {
+        resident.controller.update(dt);
+        updateWanderer(resident, residents, dt);
+        resident.mii.userData.applyPose(resident.controller.pose);
+        stats[resident.controller.action]++;
       }
+      batches.update();
+    },
+    debugUI(gui) {
+      gui.add(options, 'people', 8, 150, 1).name('Miis').onFinishChange(rebuild);
+      gui.add(options, 'paused').name('Pause crowd');
+      gui.add(stats, 'state').name('Crowd state').disable();
+      for (const action of ['idle', 'walk', 'eat', 'wave', 'cheer']) gui.add(stats, action).listen().disable();
+    },
+    dispose() {
+      batches.dispose();
+      residents = [];
     },
   };
 }

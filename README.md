@@ -5,9 +5,11 @@ Manage & More is a student-led organization. We crowdfunded our office and now h
 **Live:** https://manage-and-more.github.io/mm-office-runway/
 
 - The **Manage & More logo** stands in the middle, built in 3D. It **breaks** when money is lost and **repairs itself** when money comes in.
-- **Mii-style avatars of our donors** walk around it: happy and chill when funds are high, running around in panic when they're low.
+- **40 Mii-style characters** share a white tiled lobby, taking short strolls, idling, eating, waving, and cheering. Available consented avatars appear alongside clearly labelled fictional demo characters. Standard is the current crowd state; coordinated celebration and panic are planned.
 
 ## Quick start
+
+The **[Mii Motion Lab](tools/motion-lab/)** previews eight original procedural animations on a generic Mii-style test character, with a live gallery, orbit controls, playback speed, and timeline scrubbing. See [the animation lab notes](tools/motion-lab/README.md) for the pose contract and future rig integration.
 
 ```bash
 npm run dev
