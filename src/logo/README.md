@@ -1,28 +1,18 @@
-# Workstream: Logo
+# Center garden
 
-**Owns:** `src/logo/`, `assets/logo/`. **Contract:** `CreateModule` in [`../contracts/module.js`](../contracts/module.js).
+The `logo` module slot now contains a **ground-level planted garden**, replacing the floating placeholder cubes. Its five beds follow the original contours of `assets/logo/manage-and-more-signet.svg`, supplied by the user. The source SVG is used only for geometry: its blue fill is not rendered as a logo.
 
-## Goal
+Each section is a shallow soil bed with pale rounded stone edging. Shrubs, grasses, and small cream, pink, lavender, and yellow flowers are distributed inside the contours, leaving the gaps as open paths. Plants use deterministic placement and instanced geometry. Grass moves gently in a breeze; reduced-motion mode disables it.
 
-The Manage & More logo, built in 3D in the middle of the scene. Its condition mirrors the office's finances:
+The garden remains stable across all financial moods and donation/loss events. It does not shatter, spin, or float. This intentionally supersedes the earlier logo-shattering brief. It stays inside `LOGO_RADIUS` in XZ, but sits at ground level instead of `LOGO_CENTER_Y`; no shared constants or other modules are changed.
 
-| Funds | Logo |
-|---|---|
-| `health` 1 (thriving) | Whole, polished, maybe gently glowing or rotating |
-| `health` falling | Cracks appear and pieces loosen |
-| `health` near 0 (panic) | Broken apart, with pieces scattered or fallen |
-| `fundschange` with `delta < 0` | A one-off **break** moment: pieces snap off with a shake or shatter |
-| `fundschange` with `delta > 0` | A one-off **repair** moment: pieces fly back and click into place |
+- `/`: garden and Miis together.
+- `/?only=logo`: garden alone (legacy module identifier preserved).
+- `/?only=logo&debug`: plant/bed counts and breeze toggle.
+- `/?only=crowd`: intentionally excludes the garden.
 
-## Getting started
+`gardenFootprints()` converts SVG contours to ground-plane shapes. `buildGarden()` owns all of its resources under `ctx.root` and releases them in `dispose()`. Asset paths resolve against `ctx.assetBase`, including on GitHub Pages. No new dependencies or donor data.
 
-- Work in `/?only=logo&debug` and use the lose/donate/crash buttons.
-- The current `index.js` is a placeholder made of cubes. Replace it entirely, keeping the default-export signature.
-- Suggested pipeline: logo SVG → Three.js `SVGLoader` + `ExtrudeGeometry` in code, or model it in Blender → pre-fracture it (Cell Fracture addon) → export as **GLB** to `assets/logo/` → load with `GLTFLoader` from `three/addons/loaders/GLTFLoader.js`.
-- Put your own tuning sliders in `debugUI(gui)`.
+## Walkable garden expansion
 
-## Constraints
-
-- Stay within `LOGO_RADIUS` around `(0, LOGO_CENTER_Y, 0)`. The crowd walks just outside it.
-- Add objects only to `ctx.root`. Keep assets under 2 MB.
-- `reducedMotion`: no shaking. Crossfade between broken and whole instead.
+The garden now uses `GARDEN_RADIUS = 5.2` (about twice the earlier footprint), with four wooden benches and six warm emissive lanterns. Furniture and beds register obstacles with core's optional navigation service. Open reachable spaces between the actual SVG contours remain walkable; benches are obstacles, not sitting interactions yet. Lanterns use emissive materials rather than extra shadow-casting point lights.

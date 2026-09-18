@@ -69,3 +69,9 @@ The shared constants live in `src/contracts/module.js`. Units are roughly metres
 - The real `healthyMonths` and mood thresholds.
 - The sheet's owner and who updates the numbers.
 - Whether donations should appear as events, such as a new Mii walking in when a donor is added.
+
+## Garden navigation and group-emote extension
+
+Core supplies optional `ctx.navigation` via `src/core/navigation.js`: `register(owner, polygons)` returns an unregister function; `isWalkable`, `segmentClear`, and `findPath` let modules use the shared ground without importing each other's internals. The center garden registers actual bed and furniture contours before crowd loads. `GARDEN_RADIUS` describes the larger ground-level centerpiece; the legacy logo constants remain for compatibility. Reachable paths between beds are open to normal crowd movement.
+
+The crowd's optional `instance.groupEmotes` API provides named sequences with formation/motion/release phases, queue/replace/cancel controls, and lifecycle/cue subscriptions. Core can attach future occasion triggers through this API. No triggers or confetti are currently installed. Details: [group-emote guide](../src/crowd/group-emotes/README.md).

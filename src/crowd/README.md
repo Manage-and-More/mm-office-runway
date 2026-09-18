@@ -38,3 +38,9 @@ For the final rig, map names, rest pose, and bone axes in the adapter, then chec
 Integration checks against Three.js 0.170.0 exercise `buildMii` with all sample specs and unknown enum values, every motion, all incoming moods, 40/150-character batching, and disposal. Browser visual/GPU validation and a screenshot remain necessary when browser access is available; CPU update timing is not a frame-rate guarantee.
 
 This slice reaches outside crowd paths only for the requested white textured stage / closer camera (`src/core/stage.js`), readable lobby UI and tool link (`index.html`, `style.css`), and tool/docs relocation. Shared contracts, logo code, donor records, and dependencies are unchanged.
+
+## Special occasions and garden paths
+
+See [group-emote API and authoring guide](group-emotes/README.md) for reusable choreography, formations, synchronization, queueing, cancellation, and future effect cues. Use the crowd's debug folder to try the three examples. Standard remains the default; no confetti or automatic financial triggers are enabled.
+
+Core's shared navigation service now allows residents to stroll on reachable paths inside the larger garden while avoiding beds, benches, and lantern bases. This supersedes the blanket inner-ring exclusion when the garden is loaded; the original ring remains a fallback for standalone use without navigation.

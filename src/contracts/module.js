@@ -33,6 +33,7 @@
  * @property {import("./avatar.js").AvatarSpec[]} avatars   All consented donor avatars.
  * @property {URL} assetBase                       Your asset folder: new URL("logo.glb", ctx.assetBase).
  * @property {boolean} reducedMotion               User asked for less motion: calm everything down.
+ * @property {ReturnType<typeof import("../core/navigation.js").createNavigation>} [navigation] Shared walkability; register bed/furniture contours, then query safe paths.
  * @property {boolean} debug                       Page opened with ?debug.
  */
 
@@ -63,6 +64,7 @@
  *   A Mii is ~1 unit tall.
  */
 export const LOGO_CENTER_Y = 2.5;
-export const LOGO_RADIUS = 2.5;
+export const LOGO_RADIUS = 2.5; // Legacy sculpture radius.
+export const GARDEN_RADIUS = 5.2; // Ground-level planted centerpiece; paths between beds remain walkable.
 export const CROWD_INNER_RADIUS = 3.5;
 export const CROWD_OUTER_RADIUS = 11;

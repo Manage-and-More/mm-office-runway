@@ -4,7 +4,7 @@ Manage & More is a student-led organization. We crowdfunded our office and now h
 
 **Live:** https://manage-and-more.github.io/mm-office-runway/
 
-- The **Manage & More logo** stands in the middle, built in 3D. It **breaks** when money is lost and **repairs itself** when money comes in.
+- A **planted garden shaped like the Manage & More signet** sits in the middle: low stone-edged beds, shrubs, grasses, and flowers.
 - **40 Mii-style characters** share a white tiled lobby, taking short strolls, idling, eating, waving, and cheering. Available consented avatars appear alongside clearly labelled fictional demo characters. Standard is the current crowd state; coordinated celebration and panic are planned.
 
 ## Quick start

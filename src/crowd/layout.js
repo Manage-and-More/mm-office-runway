@@ -2,7 +2,7 @@ import { CROWD_INNER_RADIUS, CROWD_OUTER_RADIUS } from '../contracts/module.js';
 import { seededRandom } from './standard.js';
 
 // A staggered hex grid keeps characters separate while preserving logo space.
-export function createLobbyLayout(count, seed = 42) {
+export function createLobbyLayout(count, seed = 42, navigation) {
   const random = seededRandom(seed);
   const slots = [];
   const spacing = 1.14;
@@ -11,15 +11,20 @@ export function createLobbyLayout(count, seed = 42) {
     const x = (col + (Math.abs(row) % 2) * 0.5) * spacing;
     const z = row * spacing * Math.sqrt(3) / 2;
     const radius = Math.hypot(x, z);
-    if (radius > CROWD_INNER_RADIUS + 0.55 && radius < CROWD_OUTER_RADIUS - 0.55) slots.push({ x, z });
+    if ((navigation ? navigation.isWalkable(x, z) : radius > CROWD_INNER_RADIUS + 0.55) && radius < CROWD_OUTER_RADIUS - 0.55) slots.push({ x, z });
   }
   for (let i = slots.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
     [slots[i], slots[j]] = [slots[j], slots[i]];
   }
-  return slots.slice(0, count).map(slot => ({
-    x: slot.x + (random() - 0.5) * 0.10,
-    z: slot.z + (random() - 0.5) * 0.10,
+  const available = [];
+  for (const slot of slots) {
+    if (!navigation || navigation.findPath({ x: 8, z: 0 }, slot)) available.push(slot);
+    if (available.length === count) break;
+  }
+  return available.slice(0, count).map(slot => ({
+    x: slot.x + (navigation ? 0 : (random() - 0.5) * 0.10),
+    z: slot.z + (navigation ? 0 : (random() - 0.5) * 0.10),
     heading: (random() - 0.5) * Math.PI * 1.35,
   }));
 }

@@ -16,32 +16,36 @@ export function segmentDistanceSquared(px, pz, ax, az, bx, bz) {
 export function createWanderer(seed, position) {
   return { random: seededRandom(seed), x: position.x, z: position.z, walking: false };
 }
-function chooseDestination(resident, residents) {
+function chooseDestination(resident, residents, navigation) {
   const { mii, wanderer } = resident;
   for (let attempt = 0; attempt < 18; attempt++) {
     const angle = wanderer.random() * TAU;
     const distance = 0.85 + wanderer.random() * 0.85;
     const x = mii.position.x + Math.sin(angle) * distance;
     const z = mii.position.z + Math.cos(angle) * distance;
-    if (Math.hypot(x, z) > OUTER || segmentDistanceSquared(0, 0, mii.position.x, mii.position.z, x, z) < INNER * INNER) continue;
+    if (Math.hypot(x, z) > OUTER) continue;
+    const route = navigation ? navigation.findPath(mii.position, { x, z }) : null;
+    if (navigation ? !route : segmentDistanceSquared(0, 0, mii.position.x, mii.position.z, x, z) < INNER * INNER) continue;
     let clear = true;
     for (const other of residents) {
       if (other === resident) continue;
       if (segmentDistanceSquared(other.mii.position.x, other.mii.position.z, mii.position.x, mii.position.z, x, z) < SPACE * SPACE) { clear = false; break; }
       if (other.wanderer.walking && Math.hypot(other.wanderer.x - x, other.wanderer.z - z) < SPACE) { clear = false; break; }
     }
-    if (clear) { wanderer.x = x; wanderer.z = z; return true; }
+    if (clear) { wanderer.x = x; wanderer.z = z; wanderer.route = route; wanderer.waypoint = 0; return true; }
   }
   return false;
 }
-export function updateWanderer(resident, residents, dt) {
+export function updateWanderer(resident, residents, dt, navigation) {
   const { mii, controller, wanderer } = resident;
   if (controller.action !== 'walk') { wanderer.walking = false; return; }
   if (!wanderer.walking) {
-    if (!chooseDestination(resident, residents)) { controller.finishActivity(); return; }
+    if (!chooseDestination(resident, residents, navigation)) { controller.finishActivity(); return; }
     wanderer.walking = true;
   }
-  const dx = wanderer.x - mii.position.x, dz = wanderer.z - mii.position.z;
+  let target = wanderer.route?.[wanderer.waypoint] ?? wanderer;
+  if (wanderer.route && Math.hypot(target.x - mii.position.x, target.z - mii.position.z) < 0.06 && wanderer.waypoint < wanderer.route.length - 1) target = wanderer.route[++wanderer.waypoint];
+  const dx = target.x - mii.position.x, dz = target.z - mii.position.z;
   const distance = Math.hypot(dx, dz);
   if (distance < 0.025) { controller.finishActivity(); wanderer.walking = false; return; }
   const desired = Math.atan2(dx, dz);
@@ -53,6 +57,7 @@ export function updateWanderer(resident, residents, dt) {
   const travel = Math.min(distance, step * 0.27 * controller.pace);
   const x = mii.position.x + dx / distance * travel;
   const z = mii.position.z + dz / distance * travel;
+  if (navigation && !navigation.segmentClear(mii.position.x, mii.position.z, x, z)) { controller.finishActivity(); wanderer.walking = false; return; }
   for (const other of residents) {
     if (other !== resident && Math.hypot(other.mii.position.x - x, other.mii.position.z - z) < SPACE) {
       controller.finishActivity(); wanderer.walking = false; return;

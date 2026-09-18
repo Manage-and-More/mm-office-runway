@@ -42,6 +42,7 @@ export function createStandardController({ seed = 1, reducedMotion = false } = {
     pose,
     get action() { return action; },
     get pace() { return pace; },
+    resumeFromPose(lastPose) { begin('idle'); blendPoses(lastPose, lastPose, 1, from); blendPoses(lastPose, lastPose, 1, pose); },
     finishActivity() { if (action !== 'idle') begin('idle'); },
     update(dt) {
       // The scheduler owns time; sampling itself stays deterministic and reusable.

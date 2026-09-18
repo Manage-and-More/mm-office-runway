@@ -6,6 +6,7 @@ import { modules } from "../modules.js";
 import { createStage } from "./stage.js";
 import { createRunway } from "./runway.js";
 import { loadAvatars } from "./avatars.js";
+import { createNavigation } from "./navigation.js";
 import { createHud } from "./hud.js";
 
 const params = new URLSearchParams(location.search);
@@ -19,6 +20,7 @@ async function start() {
   const hud = createHud(runway, { reducedMotion });
   const [avatars] = await Promise.all([loadAvatars(config.avatarIndexUrl), runway.refresh()]);
 
+  const navigation = createNavigation();
   const active = [];
   for (const name of modules) {
     if (only && !only.includes(name)) continue;
@@ -34,6 +36,7 @@ async function start() {
         camera: stage.camera,
         renderer: stage.renderer,
         events: runway.events,
+        navigation,
         avatars,
         assetBase: new URL(`../../assets/${name}/`, import.meta.url),
         reducedMotion,
