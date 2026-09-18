@@ -21,9 +21,9 @@ Useful URLs while developing:
 - `/?only=logo` or `/?only=crowd` renders one module alone, so a broken neighbour can't get in your way.
 - `/tools/avatar-maker/` opens the photo → avatar tool.
 
-## Workstreams and ownership: stay in your lane
+## Workstreams: who works where
 
-Four people work in parallel. Each workstream owns specific paths and **only edits those**. That's why merges don't collide.
+Four people work in parallel. Each workstream mostly edits its own paths, which is what keeps merges from colliding. This is a convention for staying productive, not a gate.
 
 | Workstream | Owns | Delivers |
 |---|---|---|
@@ -32,7 +32,7 @@ Four people work in parallel. Each workstream owns specific paths and **only edi
 | **Crowd (Miis)** | `src/crowd/`, `assets/crowd/` | `buildMii(spec)` plus walking and mood animation. Brief: [src/crowd/README.md](src/crowd/README.md) |
 | **Avatars** | `tools/avatar-maker/`, `data/avatars/` | Photo → `AvatarSpec` JSON, one file per donor. Brief: [tools/avatar-maker/README.md](tools/avatar-maker/README.md) |
 
-`.github/CODEOWNERS` encodes this table. If a task seems to need an edit outside your paths, don't make it. Open an issue or ask the owner instead. For an agent, that means stopping and telling the user which file and what change is needed.
+If a task needs a change in someone else's paths, give them a quick heads-up, or keep it small and mention it in the PR. Agents should point out when a change reaches outside the current workstream.
 
 ## Contracts: the only coupling between workstreams
 
@@ -42,7 +42,7 @@ Four people work in parallel. Each workstream owns specific paths and **only edi
 
 Rules:
 1. **Code against the contract, not against another module's internals.** Never import from another workstream's folder, except `buildMii`.
-2. **A contract change is its own PR** touching only `src/contracts/` (plus the matching stubs), and every workstream owner approves it. Additive changes (a new optional field, a new enum value) are easy. Renames and removals need a migration plan.
+2. **Tell the others when a contract changes.** Keep it in its own small PR where possible. Additive changes (a new optional field, a new enum value) are easy. For renames or removals, agree with whoever uses them first.
 3. **Renderers must tolerate unknown values.** An `AvatarSpec` enum value the crowd doesn't know yet falls back to a default and never throws. That lets the avatar side add values first.
 4. **Modules own only their `ctx.root` group.** Don't touch the camera, renderer, lights, fog or anything outside `root`. If you need a scene-wide effect, ask core.
 

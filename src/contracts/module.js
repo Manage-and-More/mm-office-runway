@@ -1,5 +1,5 @@
 // CONTRACT — shared by core, logo and crowd.
-// Changing this file needs a PR approved by every workstream owner (see AGENTS.md).
+// Changes affect everyone: give the other workstreams a heads-up (see AGENTS.md).
 // Types only: nothing here runs, so modules can `import` it purely for JSDoc.
 
 /**
