@@ -1,0 +1,15 @@
+{
+  "id": "sample-ada",
+  "displayName": "Sample Ada",
+  "consent": { "public": true, "givenOn": "2026-09-18" },
+  "head": { "shape": "oval", "skinTone": "#f1c7a3" },
+  "hair": { "style": "bun", "color": "#6b3e26" },
+  "eyes": { "style": "almond", "color": "#3b5b7a" },
+  "eyebrows": "arched",
+  "nose": "small",
+  "mouth": "smile",
+  "glasses": "round",
+  "facialHair": "none",
+  "shirtColor": "#00a2cc",
+  "height": 0.95
+}

@@ -1,0 +1,12 @@
+{
+  "name": "mm-office-runway",
+  "private": true,
+  "type": "module",
+  "description": "No bundler: the site is plain ES modules. These scripts are dev tooling only.",
+  "scripts": {
+    "avatars": "node scripts/build-avatar-index.mjs",
+    "dev": "node scripts/build-avatar-index.mjs && python3 -m http.server 8080",
+    "validate": "npx -y ajv-cli@5 validate --spec=draft7 -s src/contracts/avatar.schema.json -d \"data/avatars/*.json\" && node scripts/build-avatar-index.mjs",
+    "check": "npm run validate && for f in config.js $(find src scripts -name '*.js' -o -name '*.mjs'); do node --check \"$f\" || exit 1; done && echo '\u2713 syntax ok'"
+  }
+}

@@ -2,68 +2,40 @@
 
 Manage & More is a student-led organization. We crowdfunded our office and now have to keep it. This page shows **how much runway the office has left**, in a way people actually notice.
 
-## The scene (planned)
+**Live:** https://manage-and-more.github.io/mm-office-runway/
 
-- The **Manage & More logo** sits in the middle, built in 3D.
-- **Mii-style avatars of donors** walk around it.
-- **Funds high:** avatars are happy and chill, and the logo is whole.
-- **Funds low:** avatars panic and run faster in different directions, and the logo **cracks and breaks apart**.
-- **Money added:** the logo pieces fly back together.
+- The **Manage & More logo** stands in the middle, built in 3D. It **breaks** when money is lost and **repairs itself** when money comes in.
+- **Mii-style avatars of our donors** walk around it: happy and chill when funds are high, running around in panic when they're low.
 
-> Current state: this is the starter scaffold (a placeholder 3D scene plus the data pipeline). The runway scene is being built next.
-
-## Architecture
-
-A static 3D page (Three.js) that reads one number from a spreadsheet. There is no build step and no backend, and it costs nothing to run.
-
-```
-Google Sheet ──(published CSV, fetched by the browser every 60s)──▶ GitHub Pages site
-                         └─ fallback: data.json in this repo
-```
-
-### Stack
-
-| Piece | Choice | Why |
-|---|---|---|
-| Hosting | GitHub Pages (via `.github/workflows/pages.yml`) | Free, deploys on every push to `main` |
-| 3D | Three.js 0.170 from jsDelivr via an import map | No bundler, no `node_modules` |
-| Data | Google Sheet → *Publish to web* → CSV | Free, CORS-enabled, edit from your phone |
-| Fallback | `data.json` | Works with no sheet at all; edit it in the GitHub web UI |
-
-When the number changes, the crystal pulses, the counter animates to the new value, and the number of orbiting cubes grows on a log scale.
-
-## Connect a sheet
-
-1. Make a Google Sheet like this:
-
-   | A | B |
-   |---|---|
-   | label | value |
-   | Months of runway | 6 |
-
-2. Go to **File → Share → Publish to web**, choose that sheet, choose **Comma-separated values (.csv)**, then click **Publish** and copy the URL.
-3. Paste it into `sheetCsvUrl` in [`config.js`](config.js) and push.
-
-Changes show up within about 5 minutes, because Google caches published CSVs. Anyone with the URL can read the published sheet, so put only the public number in it.
-
-### What about Excel?
-
-Excel Online / OneDrive share links don't send CORS headers, so a browser page can't read them directly. Your options:
-- Keep using Excel and paste the number into the Google Sheet or `data.json` yourself.
-- Add a scheduled GitHub Action that downloads the Excel file (`...?download=1`), reads the cell, and commits `data.json`. It's still free, but it needs a small script.
-
-## Run locally
+## Quick start
 
 ```bash
-python3 -m http.server 8080
+npm run dev
 ```
 
-Then open http://localhost:8080. Use a server, because opening the file directly with `file://` blocks ES modules.
+Then open http://localhost:8080/?debug to fake the funds with the debug panel. Node is only needed for the dev scripts; the site itself has no build step.
+
+## Contributing
+
+We build this in four parallel workstreams (core, logo, crowd, avatars), each in its own folder. Read these first:
+
+- [AGENTS.md](AGENTS.md): ownership, contracts, conventions, privacy and git workflow. (`CLAUDE.md` imports it.)
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how the pieces fit together and why.
+- Workstream briefs: [logo](src/logo/README.md) · [crowd](src/crowd/README.md) · [avatars](tools/avatar-maker/README.md)
+
+## Data source
+
+A Google Sheet published as CSV (File → Share → Publish to web → CSV), with its URL set as `sheetCsvUrl` in [`config.js`](config.js):
+
+| A | B |
+|---|---|
+| funds | monthly_cost |
+| 6000 | 1000 |
+
+Without a sheet, the page reads [`data.json`](data.json). Changes show up within about 5 minutes, because Google caches published CSVs. Anyone with the link can read a published sheet, so keep only these two numbers in it.
+
+Excel Online links can't be read by a web page, because Microsoft doesn't allow other websites to fetch them (no CORS headers). Keep the numbers in the Google Sheet, or add a scheduled GitHub Action that copies them from Excel into `data.json`.
 
 ## Deploy
 
-1. Push to a **public** GitHub repo. GitHub Pages for private repos needs a paid plan.
-2. Go to **Settings → Pages → Source: GitHub Actions**.
-3. Every push to `main` then deploys to `https://<owner>.github.io/<repo>/`.
-
-Other free hosts that work the same way: Cloudflare Pages, Netlify, and Vercel. Point any of them at this repo with no build command and `/` as the output folder.
+Every push to `main` deploys to GitHub Pages (`.github/workflows/pages.yml`). CI (`.github/workflows/ci.yml`) validates avatars, syntax-checks the JS and blocks photo files.

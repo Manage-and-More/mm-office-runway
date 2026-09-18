@@ -1,0 +1,18 @@
+# Who reviews what. Replace the TODO handles with each person's GitHub username.
+# Tip: turn on "Require review from Code Owners" in branch protection for main.
+
+*                               @mousamax
+
+# Core and contracts: the integrator. Contract changes need every owner (see AGENTS.md).
+/src/core/                      @mousamax
+/src/contracts/                 @mousamax
+/index.html                     @mousamax
+/config.js                      @mousamax
+
+# Workstreams
+/src/logo/                      @mousamax  # TODO: + @<logo-owner>
+/assets/logo/                   @mousamax  # TODO: + @<logo-owner>
+/src/crowd/                     @mousamax  # TODO: + @<crowd-owner>
+/assets/crowd/                  @mousamax  # TODO: + @<crowd-owner>
+/tools/avatar-maker/            @mousamax  # TODO: + @<avatar-owner>
+/data/avatars/                  @mousamax  # TODO: + @<avatar-owner>

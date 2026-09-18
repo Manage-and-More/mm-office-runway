@@ -1,16 +1,22 @@
-// Where the number comes from. Edit this file, commit, done.
+// Site configuration. Owned by core.
 export const config = {
-  // Google Sheets → File → Share → Publish to web → pick the sheet → "CSV" → copy the link.
-  // Expected sheet layout (row 1 is a header):
-  //   A        | B
-  //   label    | value
-  //   Members  | 1234
-  // Leave empty to only use data.json.
+  // Google Sheets → File → Share → Publish to web → sheet → CSV. Expected layout:
+  //   A      | B
+  //   funds  | monthly_cost
+  //   6000   | 1000
+  // Leave empty to use data.json.
   sheetCsvUrl: "",
-
-  // Fallback (and the default when sheetCsvUrl is empty). Edit it right in the GitHub web UI.
   fallbackJsonUrl: "data.json",
-
-  // How often to re-check the source while the page is open.
   refreshSeconds: 60,
+
+  avatarIndexUrl: "data/avatar-index.json",
+
+  // PLACEHOLDERS: agree on the real numbers with the team.
+  healthyMonths: 12, // runway at which health = 1
+  moods: [
+    // first match wins, otherwise "thriving"
+    { mood: "panic", belowMonths: 2 },
+    { mood: "worried", belowMonths: 4 },
+    { mood: "calm", belowMonths: 8 },
+  ],
 };

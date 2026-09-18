@@ -1,0 +1,15 @@
+{
+  "id": "sample-kai",
+  "displayName": "Sample Kai",
+  "consent": { "public": true, "givenOn": "2026-09-18" },
+  "head": { "shape": "square", "skinTone": "#8d5a3b" },
+  "hair": { "style": "afro", "color": "#1b1b1b" },
+  "eyes": { "style": "round", "color": "#2b1d14" },
+  "eyebrows": "thick",
+  "nose": "wide",
+  "mouth": "grin",
+  "glasses": "none",
+  "facialHair": "stubble",
+  "shirtColor": "#ff4fd8",
+  "height": 1.1
+}
