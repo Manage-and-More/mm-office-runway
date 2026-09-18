@@ -1,28 +1,35 @@
 // Turns raw funds into RunwayState and announces changes on an EventTarget.
 import { loadFunds } from "./data-source.js";
+import { stressFromRunway, moodFromStress, monthsFromDelta, impulseFromMonths } from "./feelings.js";
 
 /** @typedef {import("../contracts/module.js").RunwayState} RunwayState */
 
 export function derive({ funds, monthlyCost, source }, config) {
   const runwayMonths = monthlyCost > 0 ? funds / monthlyCost : Infinity;
-  const health = Math.min(1, Math.max(0, runwayMonths / config.healthyMonths));
-  const mood = config.moods.find((m) => runwayMonths < m.belowMonths)?.mood ?? "thriving";
-  return /** @type {RunwayState} */ (Object.freeze({ funds, monthlyCost, runwayMonths, health, mood, source }));
+  const stress = stressFromRunway(runwayMonths, config.stress);
+  return /** @type {RunwayState} */ (Object.freeze({
+    funds, monthlyCost, runwayMonths, stress, health: 1 - stress, mood: moodFromStress(stress), source,
+  }));
 }
 
 export function createRunway(config) {
   const events = new EventTarget();
   /** @type {RunwayState | null} */
   let state = null;
+  let last = null;
   let overridden = false;
   let lastError = null;
 
-  function set(input) {
+  function set(input, { quiet = false } = {}) {
+    last = input;
     const previous = state;
     state = derive(input, config);
     if (!previous || previous.funds !== state.funds || previous.monthlyCost !== state.monthlyCost) {
       const delta = previous ? state.funds - previous.funds : 0;
-      events.dispatchEvent(new CustomEvent("fundschange", { detail: { previous, current: state, delta } }));
+      const months = monthsFromDelta(delta, state.monthlyCost);
+      events.dispatchEvent(new CustomEvent("fundschange", {
+        detail: { previous, current: state, delta, months, impulse: quiet ? 0 : impulseFromMonths(months), quiet },
+      }));
     }
   }
 
@@ -42,11 +49,14 @@ export function createRunway(config) {
     events,
     get state() { return state; },
     get lastError() { return lastError; },
+    get simulating() { return overridden; },
     refresh,
     start() { setInterval(refresh, config.refreshSeconds * 1000); },
-    /** Debug panel: pin the state to fake numbers. */
-    override(input) { overridden = true; set({ ...input, source: "debug" }); },
-    /** Debug panel: go back to live data. */
+    /** Simulation: pin the state to fake numbers. `quiet` skips reactions (for sliders and slow slides). */
+    override(input, options) { overridden = true; set({ ...input, source: "debug" }, options); },
+    /** Simulation: go back to live data. */
     release() { overridden = false; return refresh(); },
+    /** Re-derive after tuning changes (e.g. the stress curve), without a reaction. */
+    rederive() { if (last) { state = null; set(last, { quiet: true }); } },
   };
 }

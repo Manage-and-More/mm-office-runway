@@ -8,8 +8,10 @@
  * @property {number} funds          Euros currently available for the office.
  * @property {number} monthlyCost    Euros the office costs per month.
  * @property {number} runwayMonths   funds / monthlyCost (Infinity if monthlyCost is 0).
- * @property {number} health         0..1 — runwayMonths / config.healthyMonths, clamped. 1 = all good.
- * @property {Mood} mood             Bucketed health; thresholds live in config.js.
+ * @property {number} stress         0..1 target stress from the S-curve in src/core/feelings.js (config.stress).
+ *                                   Jumps when data changes — for visuals prefer the smoothed frame.feelings.stress.
+ * @property {number} health         1 - stress. Kept for convenience.
+ * @property {Mood} mood             Bucketed stress: thriving < 0.1 ≤ calm < 0.35 ≤ worried < 0.7 ≤ panic.
  * @property {"sheet"|"json"|"debug"|"offline"} source
  */
 
@@ -21,6 +23,18 @@
  * @property {RunwayState|null} previous
  * @property {RunwayState} current
  * @property {number} delta          Euros; < 0 means money was lost, > 0 means money came in.
+ * @property {number} months         delta / monthlyCost: "months of runway bought (+) or lost (−)".
+ * @property {number} impulse        -1..1 reaction strength: sign(months) · min(1, log2(1 + |months|)).
+ *                                   0 at startup and for quiet changes (simulation sliders): don't react then.
+ * @property {boolean} quiet
+ */
+
+/**
+ * Smoothed, per-frame feelings. Drive continuous visuals from these.
+ * @typedef {Object} Feelings
+ * @property {number} stress         0..1, eases towards state.stress over config.feelings.stressSeconds.
+ * @property {number} emotion        -1..1, kicked by each impulse and decaying over config.feelings.emotionSeconds.
+ *                                   > 0 joy (money came in), < 0 shock (money lost).
  */
 
 /**
@@ -42,6 +56,7 @@
  * @property {number} dt             Seconds since last frame (clamped to 0.1).
  * @property {number} time           Seconds since start.
  * @property {RunwayState} state     Always read state from here; don't cache it.
+ * @property {Feelings} feelings
  */
 
 /**

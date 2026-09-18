@@ -7,9 +7,9 @@ The current implementation is a **40-person standard lobby**: mostly idle, with 
 - `/`: crowd and logo together.
 - `/?only=crowd`: lobby alone.
 - `/?only=crowd&debug`: crowd size (8–150), pause, and live action counts.
-- `/tools/motion-lab/`: inspect all eight individual motions, including dance, run, and panic studies that are **not** active lobby states yet.
+- `/tools/motion-lab/`: inspect all eight individual motions, including dance, run, and panic, which the lobby now uses as stress rises.
 
-`standard` is the default crowd state. The crowd safely accepts every `RunwayState.mood`, but loss/donation events do not change its state yet. Named group emotes now provide explicit special occasions; automatic financial-state reactions remain future work. The logo and financial HUD still respond to runway data independently.
+The crowd follows the money. `mood.js` holds the equations: per-Mii stress (personal threshold + contagion from neighbours) sets activity weights, tempo, walking/running speed, hangouts vs. scattering and worried brows. At stress 0 the lobby looks like the standard lobby plus some dancing; at high stress Miis run and flail. Donations and losses ripple out from the centre as cheers or flinches, and a big donation (impulse ≥ 0.8) plays `garden-dance`. The controllers keep their exact standard behaviour when created without a `stress` option (that's what the standard tests cover).
 
 ## Repo contracts
 

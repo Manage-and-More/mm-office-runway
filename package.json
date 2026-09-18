@@ -7,6 +7,7 @@
     "avatars": "node scripts/build-avatar-index.mjs",
     "dev": "node scripts/build-avatar-index.mjs && python3 -m http.server ${PORT:-8080}",
     "validate": "npx -y ajv-cli@5 validate --spec=draft7 -s src/contracts/avatar.schema.json -d \"data/avatars/*.json\" && node scripts/build-avatar-index.mjs",
-    "check": "npm run validate && for f in config.js $(find src scripts -name '*.js' -o -name '*.mjs'); do node --check \"$f\" || exit 1; done && echo '\u2713 syntax ok'"
+    "check": "npm run validate && for f in config.js $(find src scripts -name '*.js' -o -name '*.mjs'); do node --check \"$f\" || exit 1; done && echo '✓ syntax ok' && npm run -s test",
+    "test": "node --test 'src/**/*.test.js'"
   }
 }

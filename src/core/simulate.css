@@ -1,0 +1,30 @@
+/* The 🎛 Simulate button and panel placement. Loaded by src/core/app.js. */
+.sim-toggle {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 3;
+  padding: 10px 14px;
+  border: 2px solid var(--accent, #36c6f4);
+  border-radius: 999px;
+  background: #ffffffe6;
+  color: var(--ink, #23295c);
+  font: 700 14px var(--font-body, system-ui, sans-serif);
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgb(35 41 92 / 0.12);
+}
+.sim-toggle:hover, .sim-toggle:focus-visible { background: #fff; }
+.sim-toggle[aria-expanded="true"] { background: var(--accent, #36c6f4); color: #fff; }
+
+/* lil-gui sits bottom-left above the button, clear of the HUD and the lab link. */
+body > .lil-gui.lil-root {
+  top: auto;
+  right: auto;
+  left: 16px;
+  bottom: 68px;
+  max-height: calc(100vh - 220px);
+  overflow: auto;
+}
+@media (max-width: 500px) {
+  body > .lil-gui.lil-root { left: 8px; right: 8px; width: auto; bottom: 64px; max-height: 45vh; }
+}

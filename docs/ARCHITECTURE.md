@@ -33,7 +33,7 @@ flowchart LR
 2. Loads the first **RunwayState** and the **avatar index** in parallel.
 3. For each name in `src/modules.js`, creates a `THREE.Group` (`ctx.root`) and calls the default export of `src/<name>/index.js` with the `ModuleContext`. If a module throws, core logs it and skips it.
 4. Replays the initial `fundschange` event so every module starts in sync.
-5. Each frame, calls `instance.update({ dt, time, state })`. If a module throws there, core disables it and the page keeps running.
+5. Each frame, calls `instance.update({ dt, time, state, feelings })`. If a module throws there, core disables it and the page keeps running.
 
 ### RunwayState
 
@@ -41,10 +41,32 @@ flowchart LR
 |---|---|
 | `funds`, `monthlyCost` | Euros, from the sheet |
 | `runwayMonths` | `funds / monthlyCost` |
-| `health` | `0..1`, reaching 1 at `config.healthyMonths` |
-| `mood` | `panic` < 2 mo ≤ `worried` < 4 mo ≤ `calm` < 8 mo ≤ `thriving` (placeholder thresholds in `config.js`) |
+| `stress` | `0..1` from an S-curve of the runway (below) |
+| `health` | `1 − stress` |
+| `mood` | Bucketed stress: `thriving` < 0.1 ≤ `calm` < 0.35 ≤ `worried` < 0.7 ≤ `panic` |
 
-Modules choose how to use it. **Continuous** visuals (how broken the logo is, how fast Miis walk) follow `frame.state`. **One-off** reactions (a shatter burst on a loss, a repair flourish on a donation) listen to the `fundschange` event and its `delta`.
+### Money → feelings
+
+All the maths lives in `src/core/feelings.js` (tested) and is tuned in `config.js` or live in the Simulate panel:
+
+```
+stress   s = 1 / (1 + e^((R − midMonths) / width))     R = runway months; midMonths 3, width 1.2
+months   Δm = Δfunds / monthlyCost                        "months of runway bought or lost"
+impulse  e = sign(Δm) · min(1, log2(1 + |Δm|))            €7,208 donation today = +1 month = full reaction
+```
+
+| Runway | 0.5 | 1 | 2 | 3 | 4 | 6 | 9 | 12 |
+|---|---|---|---|---|---|---|---|---|
+| Stress | 0.89 | 0.84 | 0.70 | 0.50 | 0.30 | 0.08 | 0.01 | 0.00 |
+
+Each frame modules get **`frame.feelings`**: `stress` eases towards `state.stress` over ~3 s so sheet updates never snap, and `emotion` (−1..1) is kicked by every impulse and fades over ~8 s. **Continuous** visuals follow `frame.feelings`. **One-off** reactions listen to the `fundschange` event and its `impulse` (0 at startup and for quiet simulation slides).
+
+- **Stage (core):** the sun sets as stress rises (elevation 65° → 8°, warmer and dimmer) and the CSS sky slides from day to dusk.
+- **Crowd:** see `src/crowd/mood.js`. Each Mii has a personal threshold (worriers vs. chill ones) and catches stress from neighbours (contagion), which drives activity weights (snacks and dancing ↔ running and flailing), tempo, speed, hangouts vs. scattering, and worried brows. Impulses ripple out from the centre as cheers or flinches; a big donation (impulse ≥ 0.8) plays the "Gather & dance" group emote.
+
+### Simulate
+
+A 🎛 **Simulate** button sits bottom-left on every page, including the live site; `?debug` opens it right away. It drives `runway.override()`, the same path real sheet updates take: runway slider, donate €200 / 1 month / 3 months, lose 1 month, crash, a 40-second story mode, the stress-curve knobs, and each module's own folder. "Back to live data" returns to the sheet.
 
 ### World layout
 
@@ -66,7 +88,7 @@ The shared constants live in `src/contracts/module.js`. Units are roughly metres
 
 ## Open decisions (core)
 
-- The real `healthyMonths` and mood thresholds.
+- The real stress curve: `stress.midMonths` (the "sweat point") and `width`.
 - The sheet's owner and who updates the numbers.
 - Whether donations should appear as events, such as a new Mii walking in when a donor is added.
 

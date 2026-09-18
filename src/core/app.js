@@ -8,6 +8,7 @@ import { createRunway } from "./runway.js";
 import { loadAvatars } from "./avatars.js";
 import { createNavigation } from "./navigation.js";
 import { createHud } from "./hud.js";
+import { createFeelings } from "./feelings.js";
 
 const params = new URLSearchParams(location.search);
 const only = params.get("only")?.split(","); // ?only=logo or ?only=crowd — work on one module in isolation
@@ -18,6 +19,8 @@ async function start() {
   const stage = createStage(document.getElementById("scene"));
   const runway = createRunway(config);
   const hud = createHud(runway, { reducedMotion });
+  const feelings = createFeelings(config.feelings);
+  runway.events.addEventListener("fundschange", ({ detail }) => { if (detail.impulse) feelings.kick(detail.impulse); });
   const [avatars] = await Promise.all([loadAvatars(config.avatarIndexUrl), runway.refresh()]);
 
   const navigation = createNavigation();
@@ -51,16 +54,18 @@ async function start() {
   }
   // The first load happened before modules subscribed: replay it once so everyone starts in sync.
   runway.events.dispatchEvent(new CustomEvent("fundschange", {
-    detail: { previous: null, current: runway.state, delta: 0 },
+    detail: { previous: null, current: runway.state, delta: 0, months: 0, impulse: 0, quiet: true },
   }));
 
   runway.start();
-  if (debug) (await import("./debug-panel.js")).createDebugPanel(runway, active);
+  addSimulateButton(runway, active, { open: debug });
 
   const clock = new THREE.Clock();
   stage.renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.1);
-    const frame = { dt, time: clock.elapsedTime, state: runway.state };
+    const state = runway.state;
+    const frame = { dt, time: clock.elapsedTime, state, feelings: feelings.update(dt, state.stress) };
+    stage.setStress(reducedMotion ? state.stress : frame.feelings.stress);
     for (let i = active.length - 1; i >= 0; i--) {
       try {
         active[i].instance.update(frame);
@@ -73,6 +78,31 @@ async function start() {
     hud.tick();
     stage.renderer.render(stage.scene, stage.camera);
   });
+}
+
+// The 🎛 button is on the live site too, so anyone can trigger every animation for testing.
+// The panel code (and lil-gui) only loads on first click.
+function addSimulateButton(runway, active, { open }) {
+  const css = document.createElement("link");
+  css.rel = "stylesheet";
+  css.href = new URL("./simulate.css", import.meta.url).href;
+  document.head.append(css);
+
+  const button = document.createElement("button");
+  button.className = "sim-toggle";
+  button.type = "button";
+  button.textContent = "🎛 Simulate";
+  button.setAttribute("aria-expanded", "false");
+  document.body.append(button);
+
+  let gui = null;
+  async function toggle() {
+    if (!gui) gui = (await import("./debug-panel.js")).createDebugPanel(runway, active, config);
+    else gui.show(gui._hidden);
+    button.setAttribute("aria-expanded", String(!gui._hidden));
+  }
+  button.addEventListener("click", toggle);
+  if (open) toggle();
 }
 
 start();

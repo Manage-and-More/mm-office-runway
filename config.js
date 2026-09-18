@@ -11,12 +11,15 @@ export const config = {
 
   avatarIndexUrl: "data/avatar-index.json",
 
-  // PLACEHOLDERS: agree on the real numbers with the team.
-  healthyMonths: 12, // runway at which health = 1
-  moods: [
-    // first match wins, otherwise "thriving"
-    { mood: "panic", belowMonths: 2 },
-    { mood: "worried", belowMonths: 4 },
-    { mood: "calm", belowMonths: 8 },
-  ],
+  healthyMonths: 12, // how many month chips the HUD calendar shows
+
+  // Money → feelings (see src/core/feelings.js). Tunable live in the Simulate panel.
+  stress: {
+    midMonths: 3, // runway where stress = 0.5: "the month people start sweating"
+    width: 1.2, // how gradual the S-curve is, in months
+  },
+  feelings: {
+    stressSeconds: 3, // displayed stress eases to a new value over ~this long
+    emotionSeconds: 8, // a donation/loss reaction fades over ~this long
+  },
 };

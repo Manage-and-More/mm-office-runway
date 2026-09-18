@@ -17,7 +17,7 @@ npm run check      # what CI runs: schema-validate avatars + syntax-check all JS
 ```
 
 Useful URLs while developing:
-- `/?debug` opens a panel to fake funds (lose €1,000, donate, crash) and shows each module's own knobs.
+- 🎛 **Simulate** (bottom-left, also on the live site; `/?debug` opens it) fakes the money: runway slider, donate/lose, crash, story mode, stress-curve tuning, and each module's own knobs.
 - `/?only=logo` or `/?only=crowd` renders one module alone, so a broken neighbour can't get in your way.
 - `/tools/avatar-maker/` opens the photo → avatar tool.
 
@@ -74,6 +74,6 @@ Rules:
 ## Definition of done for a module PR
 
 - Works alone (`?only=<module>`) and together with the others (`/`).
-- Handles every mood (`thriving`, `calm`, `worried`, `panic`) and both event directions (loss and donation). Check with the debug panel.
+- Follows `frame.feelings.stress` smoothly across its range and reacts to both impulse directions (loss and donation). Check with the Simulate panel.
 - No console errors, holds 60 fps, respects `reducedMotion`.
 - Doesn't touch files outside the workstream's paths.
