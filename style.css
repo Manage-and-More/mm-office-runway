@@ -1,22 +1,34 @@
+/* Registered so the sky and accent fade smoothly when the mood changes. */
+@property --sky-top { syntax: "<color>"; inherits: true; initial-value: #8fd3ff; }
+@property --sky-bottom { syntax: "<color>"; inherits: true; initial-value: #fff1e0; }
+@property --accent { syntax: "<color>"; inherits: true; initial-value: #36c6f4; }
+
 :root {
-  --bg: #0b1026;
-  --fg: #f4f7ff;
-  --muted: #9aa5c8;
-  --accent: #00a2cc;
-  color-scheme: dark;
+  --ink: #23295c;
+  --muted: #5a6397;
+  --card: rgb(255 255 255 / 0.78);
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
 }
 
-body[data-mood="worried"] { --accent: #ffb020; }
-body[data-mood="panic"] { --accent: #ff4d4d; }
+body[data-mood="thriving"] { --accent: #2fd27a; --sky-top: #8fe0ff; --sky-bottom: #fff4d6; }
+body[data-mood="calm"]     { --accent: #36c6f4; --sky-top: #8fd3ff; --sky-bottom: #fff1e0; }
+body[data-mood="worried"]  { --accent: #ffa62b; --sky-top: #ffd08a; --sky-bottom: #ffeedd; }
+body[data-mood="panic"]    { --accent: #ff5a6e; --sky-top: #ff9aa8; --sky-bottom: #ffe3dc; }
 
 * { box-sizing: border-box; margin: 0; }
 
 html, body {
   height: 100%;
-  background: var(--bg);
-  color: var(--fg);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   overflow: hidden;
+}
+
+body {
+  background: linear-gradient(to bottom, var(--sky-top), var(--sky-bottom) 70%);
+  color: var(--ink);
+  font-family: var(--font-body);
+  transition: --sky-top 1.2s, --sky-bottom 1.2s, --accent 0.6s;
 }
 
 #scene {
@@ -30,37 +42,59 @@ html, body {
 .hud {
   position: fixed;
   inset: 0 0 auto;
-  padding: 24px 16px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
   text-align: center;
   pointer-events: none;
 }
 
 .title {
+  padding: 0.35em 1em;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: 0 3px 0 rgb(35 41 92 / 0.12);
+  font-family: var(--font-display);
   font-size: clamp(0.8rem, 2vw, 1rem);
   font-weight: 600;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--muted);
+  letter-spacing: 0.04em;
 }
 
 .runway {
-  margin-top: 0.25rem;
-  font-size: clamp(2.5rem, 9vw, 5rem);
-  font-weight: 800;
-  line-height: 1.1;
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 11vw, 6rem);
+  font-weight: 700;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 24px var(--accent);
-  transition: text-shadow 0.6s;
+  color: #fff;
+  -webkit-text-stroke: 0.06em var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 0 0.08em 0 var(--accent);
 }
 
 .unit {
-  font-size: 0.4em;
+  font-size: 0.38em;
   font-weight: 600;
-  color: var(--muted);
+  -webkit-text-stroke: 0;
+  color: var(--ink);
+  text-shadow: none;
 }
 
-.funds, .meta {
-  margin-top: 0.25rem;
+.funds {
+  padding: 0.3em 0.9em;
+  border-radius: 999px;
+  background: var(--card);
+  border: 2px solid var(--accent);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.funds:empty, .meta:empty { display: none; }
+
+.meta {
   font-size: 0.85rem;
+  font-weight: 600;
   color: var(--muted);
 }

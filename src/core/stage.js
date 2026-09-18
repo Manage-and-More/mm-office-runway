@@ -1,34 +1,35 @@
 // Renderer, camera, lights and ground. Shared by every module.
+// The sky is CSS (style.css, tinted by mood); the canvas is transparent so it shows through.
 import * as THREE from "three";
+import { CROWD_OUTER_RADIUS } from "../contracts/module.js";
+
+const ISLAND_RADIUS = 14;
+const PALETTE = [0xff7eb6, 0xffd23f, 0x7ee0ff, 0xb28dff, 0xff9f5a, 0xffffff];
 
 export function createStage(canvas) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
   renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0b1026);
-  scene.fog = new THREE.Fog(0x0b1026, 20, 45);
+  scene.fog = new THREE.Fog(0xfff1e0, 30, 60);
 
   const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
   const cameraHome = new THREE.Vector3(0, 7, 18);
   const lookAt = new THREE.Vector3(0, 1.8, 0);
 
-  scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x1a1a2e, 1.2));
-  const sun = new THREE.DirectionalLight(0xffffff, 2);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xc9b8f0, 1.6));
+  const sun = new THREE.DirectionalLight(0xfff4e0, 2.2);
   sun.position.set(6, 12, 8);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.radius = 4;
   Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14 });
   scene.add(sun);
 
-  const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(14, 64),
-    new THREE.MeshStandardMaterial({ color: 0x1c2446, roughness: 0.9 }),
-  );
-  ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
-  scene.add(ground);
+  scene.add(createIsland());
 
   const pointer = { x: 0, y: 0 };
   addEventListener("pointermove", (e) => {
@@ -55,4 +56,56 @@ export function createStage(canvas) {
   }
 
   return { renderer, scene, camera, updateCamera };
+}
+
+// A floating pastel island: a darker rim underneath, a white plaza for the logo, confetti dots around the rim.
+function createIsland() {
+  const island = new THREE.Group();
+  island.name = "island";
+
+  const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(ISLAND_RADIUS, 64),
+    new THREE.MeshStandardMaterial({ color: 0xd8cdfa, roughness: 0.95 }),
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  island.add(ground);
+
+  const rim = new THREE.Mesh(
+    new THREE.CylinderGeometry(ISLAND_RADIUS, ISLAND_RADIUS * 0.8, 1.6, 64, 1, true),
+    new THREE.MeshStandardMaterial({ color: 0xa98be0, roughness: 1, side: THREE.DoubleSide }),
+  );
+  rim.position.y = -0.8;
+  island.add(rim);
+
+  const plaza = new THREE.Mesh(
+    new THREE.CircleGeometry(3.1, 48),
+    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 }),
+  );
+  plaza.rotation.x = -Math.PI / 2;
+  plaza.position.y = 0.01;
+  plaza.receiveShadow = true;
+  island.add(plaza);
+
+  // Confetti dots between the crowd's outer edge and the rim, so they never sit under a Mii.
+  const count = 90;
+  const dots = new THREE.InstancedMesh(
+    new THREE.CircleGeometry(0.14, 12),
+    new THREE.MeshStandardMaterial({ roughness: 0.6 }),
+    count,
+  );
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+  const c = new THREE.Color();
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * Math.PI * 2 + Math.sin(i * 12.9898) * 0.05;
+    const r = CROWD_OUTER_RADIUS + 0.6 + ((Math.sin(i * 78.233) + 1) / 2) * (ISLAND_RADIUS - CROWD_OUTER_RADIUS - 1);
+    const s = 0.7 + ((Math.sin(i * 3.7) + 1) / 2) * 0.8;
+    m.compose(new THREE.Vector3(Math.cos(a) * r, 0.015, Math.sin(a) * r), q, new THREE.Vector3(s, s, s));
+    dots.setMatrixAt(i, m);
+    dots.setColorAt(i, c.setHex(PALETTE[i % PALETTE.length]));
+  }
+  island.add(dots);
+
+  return island;
 }
