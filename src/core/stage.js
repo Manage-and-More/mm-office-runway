@@ -1,7 +1,8 @@
 // Renderer, camera, lights and ground. Shared by every module.
-// The sky is CSS (style.css, tinted by mood); the canvas is transparent so it shows through.
+// The canvas is transparent: the sky behind it is CSS plus the illustrated layer from sky.js.
 import * as THREE from "three";
 import { CROWD_OUTER_RADIUS } from "../contracts/module.js";
+import { createSky } from "./sky.js";
 
 const ISLAND_RADIUS = 14;
 const PALETTE = [0xff7eb6, 0xffd23f, 0x7ee0ff, 0xb28dff, 0xff9f5a, 0xffffff];
@@ -88,47 +89,13 @@ export function createStage(canvas) {
     camera.lookAt(lookAt);
   }
 
-  // The sun sets on the office as money runs out: elevation 65° at stress 0 → 8° at stress 1,
-  // warmer and dimmer light, and the CSS sky slides from day to dusk.
-  const noon = new THREE.Color(0xffffff), dusk = new THREE.Color(0xff9a5c);
-  const skyNoon = new THREE.Color(0xffffff), skyDusk = new THREE.Color(0xffc3a0);
-  let lastStress = -1;
-  function setStress(stress) {
-    if (Math.abs(stress - lastStress) < 0.002) return;
-    lastStress = stress;
-    const elevation = THREE.MathUtils.degToRad(8 + 57 * (1 - stress));
-    const azimuth = THREE.MathUtils.degToRad(35);
-    sun.position.set(Math.sin(azimuth) * Math.cos(elevation), Math.sin(elevation), Math.cos(azimuth) * Math.cos(elevation)).multiplyScalar(18);
-    sun.color.copy(noon).lerp(dusk, stress);
-    sun.intensity = 2 - 0.7 * stress;
-    sky.color.copy(skyNoon).lerp(skyDusk, stress);
-    sky.intensity = 2.2 - 0.6 * stress;
-    setSkyCss(stress);
-  }
+  // Sun, moon, stars, clouds, lights and fog all follow stress (see sky.js).
+  const skyLayer = createSky({
+    scene, renderer, camera, sun, hemi: sky, reducedMotion,
+    horizonPoint: new THREE.Vector3(0, 0, -ISLAND_RADIUS),
+  });
 
-  return { renderer, scene, camera, updateCamera, setStress };
-}
-
-// CSS sky stops by stress: day → afternoon → golden hour → dusk.
-const SKY_STOPS = [
-  { at: 0, top: "#8fe0ff", bottom: "#fff4d6", accent: "#2fd27a" },
-  { at: 0.25, top: "#8fd3ff", bottom: "#fff1e0", accent: "#36c6f4" },
-  { at: 0.55, top: "#ffc98a", bottom: "#ffeedd", accent: "#ffa62b" },
-  { at: 0.9, top: "#b58ce0", bottom: "#ffb48a", accent: "#ff5a6e" },
-];
-const cssA = new THREE.Color(), cssB = new THREE.Color();
-function mix(a, b, t) {
-  return `#${cssA.set(a).lerp(cssB.set(b), t).getHexString()}`;
-}
-function setSkyCss(stress) {
-  let i = 0;
-  while (i < SKY_STOPS.length - 2 && stress > SKY_STOPS[i + 1].at) i++;
-  const a = SKY_STOPS[i], b = SKY_STOPS[i + 1];
-  const t = Math.min(1, Math.max(0, (stress - a.at) / (b.at - a.at)));
-  const style = document.body.style;
-  style.setProperty("--sky-top", mix(a.top, b.top, t));
-  style.setProperty("--sky-bottom", mix(a.bottom, b.bottom, t));
-  style.setProperty("--accent", mix(a.accent, b.accent, t));
+  return { renderer, scene, camera, updateCamera, setStress: skyLayer.update, celebrate: skyLayer.celebrate };
 }
 
 // A floating pastel island: a darker rim underneath, a white plaza for the logo, confetti dots around the rim.

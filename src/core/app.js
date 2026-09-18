@@ -20,7 +20,10 @@ async function start() {
   const runway = createRunway(config);
   const hud = createHud(runway, { reducedMotion });
   const feelings = createFeelings(config.feelings);
-  runway.events.addEventListener("fundschange", ({ detail }) => { if (detail.impulse) feelings.kick(detail.impulse); });
+  runway.events.addEventListener("fundschange", ({ detail }) => {
+    if (detail.impulse) feelings.kick(detail.impulse);
+    if (detail.impulse > 0) stage.celebrate(detail.impulse);
+  });
   const [avatars] = await Promise.all([loadAvatars(config.avatarIndexUrl), runway.refresh()]);
 
   const navigation = createNavigation();
