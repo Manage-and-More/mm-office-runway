@@ -5,7 +5,7 @@ export const config = {
   //   funds  | monthly_cost
   //   6000   | 1000
   // Leave empty to use data.json.
-  sheetCsvUrl: "",
+  sheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJNV8-j-8K19uNPBu9wCNbyg0sJbqAU_cZGdb1J5V6s-dlbByYk6_F4DxOQCqEBZgwLL3SlhV28REI/pub?gid=870853279&single=true&output=csv",
   fallbackJsonUrl: "data.json",
   refreshSeconds: 60,
 
