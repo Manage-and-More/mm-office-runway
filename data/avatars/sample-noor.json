@@ -1,0 +1,14 @@
+{
+  "id": "sample-noor",
+  "consent": { "public": true, "givenOn": "2026-09-18" },
+  "head": { "shape": "heart", "skinTone": "#c89572" },
+  "hair": { "style": "long", "color": "#2e1b10" },
+  "eyes": { "style": "wide", "color": "#4a3222" },
+  "eyebrows": "thin",
+  "nose": "button",
+  "mouth": "small",
+  "glasses": "none",
+  "facialHair": "none",
+  "shirtColor": "#7cffcb",
+  "height": 0.9
+}

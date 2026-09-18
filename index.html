@@ -6,22 +6,25 @@
   <title>MM Office Runway</title>
   <meta name="description" content="How long can Manage &amp; More keep its crowdfunded office? A live 3D runway.">
   <link rel="stylesheet" href="style.css">
+  <!-- Every dependency comes from here. Adding one is a core change (see AGENTS.md). -->
   <script type="importmap">
     {
       "imports": {
         "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+        "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.21.0/dist/lil-gui.esm.min.js"
       }
     }
   </script>
-  <script type="module" src="main.js"></script>
+  <script type="module" src="src/core/app.js"></script>
 </head>
 <body>
   <canvas id="scene" aria-hidden="true"></canvas>
 
-  <main class="overlay">
-    <p class="label" id="label">Loading…</p>
-    <p class="number" id="number" aria-live="polite">0</p>
+  <main class="hud">
+    <h1 class="title">Manage &amp; More office runway</h1>
+    <p class="runway" aria-live="polite"><span id="months">–</span> <span class="unit">months left</span></p>
+    <p class="funds" id="funds"></p>
     <p class="meta" id="meta"></p>
   </main>
 </body>

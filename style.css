@@ -1,10 +1,13 @@
 :root {
-  --bg: #05070f;
+  --bg: #0b1026;
   --fg: #f4f7ff;
-  --muted: #8a94b8;
-  --glow: #00a2cc;
+  --muted: #9aa5c8;
+  --accent: #00a2cc;
   color-scheme: dark;
 }
+
+body[data-mood="worried"] { --accent: #ffb020; }
+body[data-mood="panic"] { --accent: #ff4d4d; }
 
 * { box-sizing: border-box; margin: 0; }
 
@@ -24,33 +27,40 @@ html, body {
   display: block;
 }
 
-.overlay {
+.hud {
   position: fixed;
-  inset: 0;
-  display: grid;
-  place-content: center;
+  inset: 0 0 auto;
+  padding: 24px 16px;
   text-align: center;
-  padding: 16px;
   pointer-events: none;
 }
 
-.label {
-  font-size: clamp(0.9rem, 2.5vw, 1.25rem);
-  letter-spacing: 0.3em;
+.title {
+  font-size: clamp(0.8rem, 2vw, 1rem);
+  font-weight: 600;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-.number {
-  font-size: clamp(4rem, 18vw, 12rem);
+.runway {
+  margin-top: 0.25rem;
+  font-size: clamp(2.5rem, 9vw, 5rem);
   font-weight: 800;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
-  line-height: 1;
-  text-shadow: 0 0 24px var(--glow), 0 0 64px color-mix(in srgb, var(--glow) 50%, transparent);
+  text-shadow: 0 0 24px var(--accent);
+  transition: text-shadow 0.6s;
 }
 
-.meta {
-  margin-top: 1rem;
-  font-size: 0.8rem;
+.unit {
+  font-size: 0.4em;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.funds, .meta {
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
   color: var(--muted);
 }

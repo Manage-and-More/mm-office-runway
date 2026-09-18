@@ -1,4 +1,4 @@
-// Loads { label, value } from a published Google Sheet (CSV), falling back to data.json.
+// Loads { funds, monthlyCost } from a published Google Sheet (CSV), falling back to data.json.
 
 function toNumber(raw) {
   const n = Number(String(raw).replace(/[^\d.\-]/g, ""));
@@ -7,7 +7,7 @@ function toNumber(raw) {
 }
 
 // Tiny CSV parser: handles quoted fields ("1,234") and escaped quotes.
-function parseCsv(text) {
+export function parseCsv(text) {
   const rows = [];
   let row = [], field = "", quoted = false;
   for (let i = 0; i < text.length; i++) {
@@ -31,19 +31,24 @@ async function fromSheet(url) {
   // Cache-buster: published sheets are CDN-cached for a few minutes.
   const res = await fetch(`${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`);
   if (!res.ok) throw new Error(`Sheet HTTP ${res.status}`);
-  const [, first] = parseCsv(await res.text()); // row 0 is the header
+  const [header, first] = parseCsv(await res.text());
   if (!first) throw new Error("Sheet has no data row");
-  return { label: first[0] || "", value: toNumber(first[1]), source: "Google Sheet" };
+  const col = (name) => {
+    const i = header.findIndex((h) => h.trim().toLowerCase() === name);
+    if (i < 0) throw new Error(`Sheet is missing the "${name}" column`);
+    return toNumber(first[i]);
+  };
+  return { funds: col("funds"), monthlyCost: col("monthly_cost"), source: "sheet" };
 }
 
 async function fromJson(url) {
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`JSON HTTP ${res.status}`);
   const data = await res.json();
-  return { label: data.label ?? "", value: toNumber(data.value), source: "data.json" };
+  return { funds: toNumber(data.funds), monthlyCost: toNumber(data.monthlyCost), source: "json" };
 }
 
-export async function loadNumber({ sheetCsvUrl, fallbackJsonUrl }) {
+export async function loadFunds({ sheetCsvUrl, fallbackJsonUrl }) {
   if (sheetCsvUrl) {
     try {
       return await fromSheet(sheetCsvUrl);
