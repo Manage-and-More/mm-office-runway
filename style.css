@@ -381,3 +381,73 @@ body[data-mood="panic"] .chip.edge i { animation-duration: 0.6s; }
   .sun-rays, .star, .cloud { animation: none; }
   .cloud { translate: calc(var(--top) * 60vw) 0; }
 }
+
+/* ---- Effects (src/core/effects.js): rain, thunder, shake, confetti ---- */
+.effects { position: fixed; inset: 0; pointer-events: none; z-index: 2; --rain: 0; }
+.rain { position: absolute; inset: 0; opacity: var(--rain); display: none; }
+.raining .rain { display: block; }
+.rain i {
+  position: absolute;
+  top: -80px;
+  width: 2px;
+  height: var(--len);
+  border-radius: 2px;
+  background: linear-gradient(rgb(255 255 255 / 0), rgb(220 230 255 / 0.75));
+  rotate: 8deg;
+  animation: rain-fall var(--dur) linear var(--delay) infinite;
+}
+@keyframes rain-fall { to { translate: -40px 110vh; } }
+.storm {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, transparent 40%, rgb(20 15 60 / 0.55));
+  opacity: var(--rain);
+  transition: opacity 1s;
+}
+.flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+.flash.on { animation: lightning 0.7s ease-out; }
+@keyframes lightning { 0% { opacity: 0; } 8% { opacity: 0.85; } 20% { opacity: 0.1; } 30% { opacity: 0.6; } 100% { opacity: 0; } }
+.shake { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes shake {
+  10%, 90% { translate: calc(var(--shake, 6px) * -0.3) 0; }
+  20%, 80% { translate: calc(var(--shake, 6px) * 0.5) calc(var(--shake, 6px) * -0.2); }
+  30%, 50%, 70% { translate: calc(var(--shake, 6px) * -1) calc(var(--shake, 6px) * 0.3); }
+  40%, 60% { translate: var(--shake, 6px) 0; }
+}
+.confetti { position: absolute; inset: 0; overflow: hidden; }
+.confetti i {
+  position: absolute;
+  top: -20px;
+  border-radius: 2px;
+  animation: confetti-fall var(--dur) ease-in var(--delay) forwards;
+}
+@keyframes confetti-fall {
+  0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  100% { transform: translate(var(--drift), 105vh) rotate(var(--spin)); opacity: 0.9; }
+}
+
+/* Demo mode banner + donate button */
+.meta.demo {
+  padding: 0.35em 1em;
+  border-radius: 999px;
+  background: #23295c;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 3px 0 rgb(0 0 0 / 0.2);
+}
+.donate {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 3;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font: 700 14px var(--font-display);
+  text-decoration: none;
+  box-shadow: 0 3px 0 rgb(35 41 92 / 0.2);
+  transition: background 0.6s;
+}
+.donate:hover, .donate:focus-visible { scale: 1.05; }
+.donate[hidden] { display: none; }
+@media (max-width: 850px) { .donate { top: auto; bottom: 20px; left: 16px; font-size: 12px; } .sim-toggle { display: none; } }

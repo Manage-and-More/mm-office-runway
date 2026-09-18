@@ -1,0 +1,18 @@
+/* Crowd overlays (loaded by src/crowd/index.js): emoji bubbles over Miis. */
+.bubbles { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+.bubble-emoji {
+  position: absolute;
+  left: 0; top: 0;
+  translate: -50% -100%;
+  padding: 3px 8px;
+  border-radius: 12px 12px 12px 3px;
+  background: #fff;
+  box-shadow: 0 2px 0 rgb(35 41 92 / 0.18);
+  font: 700 15px var(--font-body, system-ui, sans-serif);
+  color: var(--ink, #23295c);
+  white-space: nowrap;
+  will-change: transform;
+}
+.bubble-emoji.pop { animation: bubble-pop 0.35s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes bubble-pop { from { scale: 0.2; opacity: 0; } }
+@media (max-width: 600px) { .bubble-emoji { font-size: 12px; padding: 2px 6px; } }

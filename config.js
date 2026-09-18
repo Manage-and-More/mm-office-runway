@@ -11,6 +11,9 @@ export const config = {
 
   avatarIndexUrl: "data/avatar-index.json",
 
+  // Where the "Keep our office" button sends people. Leave empty to hide the button.
+  donateUrl: "",
+
   healthyMonths: 12, // how many month chips the HUD calendar shows
 
   // Money → feelings (see src/core/feelings.js). Tunable live in the Simulate panel.

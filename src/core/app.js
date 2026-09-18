@@ -9,6 +9,7 @@ import { loadAvatars } from "./avatars.js";
 import { createNavigation } from "./navigation.js";
 import { createHud } from "./hud.js";
 import { createFeelings } from "./feelings.js";
+import { createEffects } from "./effects.js";
 
 const params = new URLSearchParams(location.search);
 const only = params.get("only")?.split(","); // ?only=logo or ?only=crowd — work on one module in isolation
@@ -20,8 +21,9 @@ async function start() {
   const runway = createRunway(config);
   const hud = createHud(runway, { reducedMotion });
   const feelings = createFeelings(config.feelings);
+  const effects = createEffects({ reducedMotion });
   runway.events.addEventListener("fundschange", ({ detail }) => {
-    if (detail.impulse) feelings.kick(detail.impulse);
+    if (detail.impulse) { feelings.kick(detail.impulse); effects.impulse(detail.impulse); }
     if (detail.impulse > 0) stage.celebrate(detail.impulse);
   });
   const [avatars] = await Promise.all([loadAvatars(config.avatarIndexUrl), runway.refresh()]);
@@ -70,6 +72,7 @@ async function start() {
     const state = runway.state;
     const frame = { dt, time: clock.elapsedTime, state, feelings: feelings.update(dt, state.stress) };
     stage.setStress(reducedMotion ? state.stress : frame.feelings.stress);
+    effects.update(dt, frame.feelings.stress);
     for (let i = active.length - 1; i >= 0; i--) {
       try {
         active[i].instance.update(frame);
@@ -93,7 +96,7 @@ function addPanicButton(runway) {
   button.className = "panic-toggle";
   button.type = "button";
   const render = () => {
-    button.textContent = runway.simulating ? "😌 Calm down" : "🚨 Panic!";
+    button.textContent = runway.simulating ? "🎉 Save the office!" : "🚨 Panic!";
     button.classList.toggle("active", runway.simulating);
   };
   button.addEventListener("click", async () => {

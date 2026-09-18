@@ -110,12 +110,16 @@ export function createHud(runway, { reducedMotion }) {
     anim = requestAnimationFrame(step);
   });
 
+  const donate = document.getElementById("donate");
+  if (donate && config.donateUrl) { donate.href = config.donateUrl; donate.hidden = false; }
+
   return {
     tick() {
-      const s = runway.state;
-      metaEl.textContent = runway.lastError
-        ? "Couldn't reach the data source. Showing the last known numbers."
-        : s?.source === "debug" ? "DEBUG: fake numbers" : "";
+      const demo = runway.simulating;
+      metaEl.classList.toggle("demo", demo);
+      metaEl.textContent = demo
+        ? "🎛 Demo mode: not the real numbers"
+        : runway.lastError ? "Couldn't reach the data source. Showing the last known numbers." : "";
     },
   };
 }
