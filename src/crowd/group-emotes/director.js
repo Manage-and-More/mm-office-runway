@@ -7,7 +7,7 @@ import { moveToSlot, turnToward } from './navigation.js';
 /** Independent of Three.js; residents provide position/rotation and a pose controller. */
 export function createGroupDirector(residents, { reducedMotion = false, navigation, definitions = GROUP_EMOTES, formations = FORMATIONS, onEvent = () => {} } = {}) {
   const registry = createRegistry(definitions, formations);
-  const actors = residents.map(resident => ({ resident, pose: createPose(), from: createPose(), targetPose: createPose(), target: null, route: null, waypoint: 0 }));
+  const actors = residents.map(resident => ({ resident, pose: createPose(), from: createPose(), targetPose: createPose(), idlePose: createPose(), target: null, route: null, waypoint: 0 }));
   const queue = [];
   const status = { emote: '', phase: 'standard', progress: 0, queued: 0, lastResult: '' };
   let active = null, phaseIndex = -1, elapsed = 0, duration = 0, cueSent = new Set(), disposed = false, revision = 0;
@@ -30,7 +30,7 @@ export function createGroupDirector(residents, { reducedMotion = false, navigati
     if (phaseIndex >= active.phases.length) { finish('completed'); return; }
     const phase = active.phases[phaseIndex];
     elapsed = 0; cueSent = new Set();
-    status.phase = phase.type;
+    status.phase = phase.type; status.progress = 0;
     duration = (phase.duration ?? phase.timeout) + (phase.type === 'motion' ? (phase.stagger ?? 0) * Math.max(0, actors.length - 1) : 0);
     for (const actor of actors) blendPoses(actor.pose, actor.pose, 1, actor.from);
     if (phase.type === 'formation' && !reducedMotion) {
@@ -78,12 +78,13 @@ export function createGroupDirector(residents, { reducedMotion = false, navigati
       let arrived = true;
       for (let i = 0; i < actors.length; i++) {
         const actor = actors[i];
-        let motion = phase.motion ?? 'idle', clock = elapsed * (phase.speed ?? 1);
+        let motion = phase.motion ?? 'idle', clock = elapsed * (phase.speed ?? 1), participation = 1;
         if (phase.type === 'formation' && !reducedMotion) {
           const done = moveToSlot(actor, actors, step, navigation);
           arrived = arrived && done; motion = done ? 'idle' : 'walk'; clock = elapsed * 1.8;
         } else if (phase.type === 'motion') {
           const local = elapsed - (phase.stagger ?? 0) * i;
+          participation = Math.max(0, Math.min(1, local / 0.3, (phase.duration - local) / 0.3));
           if (local < 0 || local >= phase.duration) motion = 'idle';
           clock = Math.max(0, local) * (phase.speed ?? 1);
           if (!reducedMotion && phase.facing && phase.facing !== 'keep') {
@@ -93,6 +94,10 @@ export function createGroupDirector(residents, { reducedMotion = false, navigati
         }
         if (reducedMotion) { motion = 'idle'; clock = elapsed * 0.3; }
         sampleMotion(motion, clock, actor.targetPose);
+        if (phase.type === 'motion' && !reducedMotion) {
+          sampleMotion('idle', elapsed * 0.3, actor.idlePose);
+          blendPoses(actor.idlePose, actor.targetPose, participation, actor.targetPose);
+        }
         blendPoses(actor.from, actor.targetPose, Math.min(1, elapsed / 0.45), actor.pose);
         actor.resident.mii.userData.applyPose(actor.pose);
       }

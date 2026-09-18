@@ -9,13 +9,13 @@ The current implementation is a **40-person standard lobby**: mostly idle, with 
 - `/?only=crowd&debug`: crowd size (8–150), pause, and live action counts.
 - `/tools/motion-lab/`: inspect all eight individual motions, including dance, run, and panic studies that are **not** active lobby states yet.
 
-`standard` is the only crowd state implemented. The crowd safely accepts every `RunwayState.mood`, but loss/donation events do not change its state yet. Celebration and panic controllers, and their transitions, are future work. The logo and financial HUD still respond to runway data independently.
+`standard` is the default crowd state. The crowd safely accepts every `RunwayState.mood`, but loss/donation events do not change its state yet. Named group emotes now provide explicit special occasions; automatic financial-state reactions remain future work. The logo and financial HUD still respond to runway data independently.
 
 ## Repo contracts
 
 `mii.js` exports `buildMii(spec)` → `THREE.Group`, feet near Y=0, facing +Z, approximately 1 unit tall × `spec.height`. The avatar maker uses the same API. `group.userData.applyPose(pose)`, `.joints`, and `.setMood(mood)` expose animation and expression hooks. Unknown enum values fall back; invalid colors and heights get safe defaults. Skin, shirt, hair color/style, head proportions, glasses, and some facial-hair variations are supported; other facial-style fields currently use a generic default or approximation.
 
-The first consented avatars fill available lobby slots. Remaining slots use deterministic fictional demo characters, generated in memory; these are explicitly labelled as demos in the page and never written as donor records or given fabricated consent. The count is fixed at 40 for this demo, rather than inferred from donor count. The current three sample specs therefore leave 37 demo slots.
+The first consented avatars fill available lobby slots. Remaining slots use deterministic fictional demo characters, generated in memory; these are never written as donor records or given fabricated consent. The count is fixed at 40 for this demo, rather than inferred from donor count. The current three sample specs therefore leave 37 demo slots.
 
 ## Motion and behavior
 

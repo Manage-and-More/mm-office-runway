@@ -8,7 +8,7 @@ export function createRegistry(definitions, formations = FORMATIONS) {
     if (!definition.id || registry.has(definition.id) || !definition.label || !Array.isArray(definition.phases) || !definition.phases.length) throw new Error('Invalid or duplicate group emote');
     for (const phase of definition.phases) {
       if (!['formation', 'motion', 'release'].includes(phase.type)) throw new Error('Unknown phase type');
-      if (phase.type === 'formation' && (!Object.hasOwn(formations, phase.formation) || !positive(phase.timeout))) throw new Error('Invalid formation');
+      if (phase.type === 'formation' && ((!Object.hasOwn(formations, phase.formation) || typeof formations[phase.formation] !== 'function') || !positive(phase.timeout))) throw new Error('Invalid formation');
       if (phase.type !== 'formation' && !positive(phase.duration)) throw new Error('Invalid phase duration');
       if (phase.type === 'motion' && !motions.has(phase.motion)) throw new Error('Unknown motion');
       if (phase.speed !== undefined && !positive(phase.speed)) throw new Error('Invalid playback speed');

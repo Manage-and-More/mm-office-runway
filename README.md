@@ -5,7 +5,7 @@ Manage and More is a student-led organization. We crowdfunded our office and now
 **Live:** https://manage-and-more.github.io/mm-office-runway/
 
 - A **planted garden shaped like the Manage and More signet** sits in the middle: low stone-edged beds, shrubs, grasses, and flowers.
-- **40 Mii-style characters** share a white tiled lobby, taking short strolls, idling, eating, waving, and cheering. Available consented avatars appear alongside clearly labelled fictional demo characters. Standard is the current crowd state; coordinated celebration and panic are planned.
+- **40 Mii-style characters** share a white tiled lobby, taking short strolls, idling, eating, waving, and cheering. Available consented avatars appear alongside fictional demo characters. Standard is the current crowd state; named group emotes are available in the debug panel; automatic panic behavior is planned.
 
 ## Quick start
 

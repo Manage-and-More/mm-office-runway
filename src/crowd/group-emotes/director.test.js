@@ -68,3 +68,35 @@ test('gather uses continuous movement, preserves spacing, and completes at 40', 
   }
   assert.equal(d.status.lastResult,'completed');
 });
+
+test('a lifecycle listener may cancel immediately without breaking the director', () => {
+  let d;
+  d = createGroupDirector(residents(8), { onEvent(event) { if(event.type === 'start') d.cancel(); } });
+  assert.doesNotThrow(()=>d.play('group-cheer'));
+  assert.equal(d.active,false);assert.equal(d.status.lastResult,'cancelled');
+});
+test('cancel midway through gathering preserves positions and seeds a smooth handoff', () => {
+  const people=residents(),d=createGroupDirector(people);d.play('garden-dance');
+  for(let i=0;i<20;i++)d.update(.1);
+  const positions=people.map(person=>({...person.mii.position}));
+  d.cancel();assert.deepEqual(people.map(person=>person.mii.position),positions);
+  assert.ok(people.every(person=>person.controller.action==='idle'));
+  for(const person of people) {const pose=structuredClone(person.controller.pose);person.controller.update(0);assert.deepEqual(person.controller.pose,pose);}
+});
+test('staggered participants ease in and out of their gesture', () => {
+  const people=residents(8),d=createGroupDirector(people);let previous=null,maxChange=0;
+  people[3].mii.userData.applyPose=pose=>{
+    const current=pose.joints.rightUpperArm[2];
+    if(previous!==null)maxChange=Math.max(maxChange,Math.abs(previous-current));previous=current;
+  };
+  d.play('wave-ripple');for(let i=0;i<300;i++)d.update(1/60);
+  assert.ok(maxChange<0.25,`visible pose snap: ${maxChange}`);
+  assert.equal(d.status.lastResult,'completed');
+});
+test('unreachable formations release safely without teleportation', () => {
+  const people=residents(8),before=people.map(p=>({...p.mii.position}));
+  const d=createGroupDirector(people,{navigation:{findPath:()=>null}});
+  assert.doesNotThrow(()=>d.play('garden-dance'));
+  assert.equal(d.status.lastResult,'unreachable-formation');assert.equal(d.active,false);
+  assert.deepEqual(people.map(p=>p.mii.position),before);
+});

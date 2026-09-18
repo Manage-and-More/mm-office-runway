@@ -4,7 +4,7 @@ The `logo` module slot now contains a **ground-level planted garden**, replacing
 
 Each section is a shallow soil bed with pale rounded stone edging. Shrubs, grasses, and small cream, pink, lavender, and yellow flowers are distributed inside the contours, leaving the gaps as open paths. Plants use deterministic placement and instanced geometry. Grass moves gently in a breeze; reduced-motion mode disables it.
 
-The garden remains stable across all financial moods and donation/loss events. It does not shatter, spin, or float. This intentionally supersedes the earlier logo-shattering brief. It stays inside `LOGO_RADIUS` in XZ, but sits at ground level instead of `LOGO_CENTER_Y`; no shared constants or other modules are changed.
+The garden remains stable across all financial moods and donation/loss events. It does not shatter, spin, or float. This intentionally supersedes the earlier logo-shattering brief. The planting stays inside `GARDEN_RADIUS` in XZ and sits at ground level instead of the legacy `LOGO_CENTER_Y`. Furniture surrounds the beds; all footprints are registered with shared navigation.
 
 - `/`: garden and Miis together.
 - `/?only=logo`: garden alone (legacy module identifier preserved).
