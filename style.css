@@ -91,7 +91,130 @@ body {
   font-weight: 700;
 }
 
-.funds:empty, .meta:empty { display: none; }
+.funds strong { font-variant-numeric: tabular-nums; }
+.funds .dot { color: var(--muted); margin: 0 0.2em; }
+.funds .emoji { font-size: 1.05em; }
+
+.funds:empty, .meta:empty, .until:empty { display: none; }
+
+#months { display: inline-block; }
+#months.pop { animation: pop 0.5s cubic-bezier(0.3, 1.8, 0.5, 1); }
+@keyframes pop { 40% { transform: scale(1.25) rotate(-4deg); } }
+
+/* One chip per month from now. Filled chips are covered; the edge chip is where the money runs out. */
+.calendar {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  width: min(100%, 560px);
+  padding: 8px 10px;
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: 0 3px 0 rgb(35 41 92 / 0.12);
+}
+.calendar.shake { animation: shake 0.45s; }
+@keyframes shake { 20%, 60% { transform: translateX(-7px) rotate(-1deg); } 40%, 80% { transform: translateX(7px) rotate(1deg); } }
+
+.chip {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.chip i {
+  position: relative;
+  width: 100%;
+  height: 22px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: rgb(35 41 92 / 0.08);
+}
+.chip i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--accent);
+  box-shadow: inset 0 -4px 0 rgb(0 0 0 / 0.12);
+  transform-origin: left;
+  transform: scaleX(var(--fill, 0));
+  transition: transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) calc(var(--i) * 60ms), background-color 0.6s;
+}
+.chip b {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.chip.full b { color: var(--ink); }
+.chip.edge i { outline: 2px solid var(--accent); outline-offset: 1px; animation: blink 1.4s ease-in-out infinite; }
+.chip.edge b { color: var(--ink); }
+.chip.edge b::before { content: "🏠"; display: block; font-size: 0.9rem; margin-bottom: -2px; }
+body[data-mood="panic"] .chip.edge i { animation-duration: 0.6s; }
+@keyframes blink { 50% { outline-color: transparent; } }
+
+.chip-extra {
+  align-self: center;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.until {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+.until strong { font-weight: 700; color: var(--ink); }
+
+/* "+€1,000" / "−€1,000" floating up from the pot. */
+.bubble {
+  position: absolute;
+  top: 230px;
+  left: calc(50% + var(--x, 0px));
+  translate: -50% 0;
+  padding: 0.2em 0.7em;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: #fff;
+  -webkit-text-stroke: 0;
+  box-shadow: 0 4px 0 rgb(35 41 92 / 0.18);
+  animation: float-up 1.8s ease-out forwards;
+}
+.bubble.up { background: #2fd27a; }
+.bubble.down { background: #ff5a6e; animation-name: fall-down; }
+@keyframes float-up {
+  0% { opacity: 0; transform: translateY(40px) scale(0.6); }
+  15% { opacity: 1; transform: translateY(0) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-120px) scale(1); }
+}
+@keyframes fall-down {
+  0% { opacity: 0; transform: translateY(-20px) scale(0.6); }
+  15% { opacity: 1; transform: translateY(0) scale(1.1); }
+  100% { opacity: 0; transform: translateY(160px) rotate(12deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip i::after { transition: none; }
+  .chip.edge i { animation: none; }
+}
+
+@media (max-width: 480px) {
+  .calendar { gap: 2px; padding: 6px; }
+  .chip b { font-size: 0.55rem; letter-spacing: 0; }
+  .chip i { height: 16px; border-radius: 5px; }
+  .funds { font-size: 0.8rem; }
+  .until { font-size: 0.9rem; }
+}
 
 .meta {
   font-size: 0.85rem;

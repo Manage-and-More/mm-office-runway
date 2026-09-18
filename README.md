@@ -1,10 +1,10 @@
 # MM Office Runway
 
-Manage & More is a student-led organization. We crowdfunded our office and now have to keep it. This page shows **how much runway the office has left**, in a way people actually notice.
+Manage and More is a student-led organization. We crowdfunded our office and now have to keep it. This page shows **how much runway the office has left**, in a way people actually notice.
 
 **Live:** https://manage-and-more.github.io/mm-office-runway/
 
-- A **planted garden shaped like the Manage & More signet** sits in the middle: low stone-edged beds, shrubs, grasses, and flowers.
+- A **planted garden shaped like the Manage and More signet** sits in the middle: low stone-edged beds, shrubs, grasses, and flowers.
 - **40 Mii-style characters** share a white tiled lobby, taking short strolls, idling, eating, waving, and cheering. Available consented avatars appear alongside clearly labelled fictional demo characters. Standard is the current crowd state; coordinated celebration and panic are planned.
 
 ## Quick start
