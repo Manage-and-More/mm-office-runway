@@ -62,6 +62,7 @@ async function start() {
 
   runway.start();
   addSimulateButton(runway, active, { open: debug });
+  addPanicButton(runway);
 
   const clock = new THREE.Clock();
   stage.renderer.setAnimationLoop(() => {
@@ -85,6 +86,26 @@ async function start() {
 
 // The 🎛 button is on the live site too, so anyone can trigger every animation for testing.
 // The panel code (and lil-gui) only loads on first click.
+// 🚨 One-click demo: crash the office to 0.3 months of runway (night, panicking crowd),
+// and press again to release back to the real numbers (which reads as a big donation: cheers, dance, shooting stars).
+function addPanicButton(runway) {
+  const button = document.createElement("button");
+  button.className = "panic-toggle";
+  button.type = "button";
+  const render = () => {
+    button.textContent = runway.simulating ? "😌 Calm down" : "🚨 Panic!";
+    button.classList.toggle("active", runway.simulating);
+  };
+  button.addEventListener("click", async () => {
+    if (runway.simulating) await runway.release();
+    else runway.override({ funds: Math.round(0.3 * (runway.state.monthlyCost || 1000)), monthlyCost: runway.state.monthlyCost || 1000 });
+    render();
+  });
+  runway.events.addEventListener("fundschange", render);
+  render();
+  document.body.append(button);
+}
+
 function addSimulateButton(runway, active, { open }) {
   const css = document.createElement("link");
   css.rel = "stylesheet";

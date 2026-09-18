@@ -16,6 +16,28 @@
 .sim-toggle:hover, .sim-toggle:focus-visible { background: #fff; }
 .sim-toggle[aria-expanded="true"] { background: var(--accent, #36c6f4); color: #fff; }
 
+.panic-toggle {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  translate: -50% 0;
+  z-index: 3;
+  padding: 12px 22px;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  background: #ff5a6e;
+  color: #fff;
+  font: 800 16px var(--font-display, var(--font-body, system-ui, sans-serif));
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgb(120 20 40 / 0.35), 0 0 24px rgb(255 90 110 / 0.5);
+  animation: panic-pulse 1.6s ease-in-out infinite;
+}
+.panic-toggle.active { background: #2fd27a; box-shadow: 0 4px 0 rgb(20 90 50 / 0.35); animation: none; }
+.panic-toggle:hover, .panic-toggle:focus-visible { scale: 1.06; }
+@keyframes panic-pulse { 50% { box-shadow: 0 4px 0 rgb(120 20 40 / 0.35), 0 0 40px rgb(255 90 110 / 0.9); } }
+@media (prefers-reduced-motion: reduce) { .panic-toggle { animation: none; } }
+
 /* lil-gui sits bottom-left above the button, clear of the HUD and the lab link. */
 body > .lil-gui.lil-root {
   top: auto;
