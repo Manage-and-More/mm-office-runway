@@ -10,6 +10,8 @@ import { createNavigation } from "./navigation.js";
 import { createHud } from "./hud.js";
 import { createFeelings } from "./feelings.js";
 import { createEffects } from "./effects.js";
+import { createMemberBar } from "./member.js";
+import { createPeople } from "./people.js";
 
 const params = new URLSearchParams(location.search);
 const only = params.get("only")?.split(","); // ?only=logo or ?only=crowd — work on one module in isolation
@@ -26,7 +28,7 @@ async function start() {
     if (detail.impulse) { feelings.kick(detail.impulse); effects.impulse(detail.impulse); }
     if (detail.impulse > 0) stage.celebrate(detail.impulse);
   });
-  const [avatars] = await Promise.all([loadAvatars(config.avatarIndexUrl), runway.refresh()]);
+  const [avatars] = await Promise.all([loadAvatars(config.avatarIndexUrl, config), runway.refresh()]);
 
   const navigation = createNavigation();
   const active = [];
@@ -63,8 +65,27 @@ async function start() {
   }));
 
   runway.start();
-  addSimulateButton(runway, active, { open: debug });
-  addPanicButton(runway);
+  // Name tags over donors' Miis (signed-in members only) and the member bar: sign in, add a payment
+  // (re-reads the runway at once so the crowd cheers), open the Mii editor.
+  const crowdRoot = stage.scene.getObjectByName("crowd");
+  const people = createPeople({
+    camera: stage.camera,
+    miis: () => crowdRoot?.userData.miis?.() ?? [],
+    // Click your own Mii: a little celebration. Click someone else's: they wave back.
+    onPick: (id, info) => {
+      const party = ["dance", "cheer"][Math.floor(Math.random() * 2)];
+      const emoji = info?.mine ? ["🎉", "🥳", "💃", "🙌"][Math.floor(Math.random() * 4)] : "👋";
+      crowdRoot?.userData.react?.(id, info?.mine ? party : "wave", reducedMotion ? null : emoji);
+    },
+  });
+  createMemberBar(config, { onPaymentAdded: () => runway.release(), people });
+  for (const button of document.querySelectorAll(".nav [data-nav]")) {
+    button.addEventListener("click", () => {
+      const n = stage.navigation;
+      ({ left: () => n.rotate(-Math.PI / 8), right: () => n.rotate(Math.PI / 8), in: () => n.zoom(0.8), out: () => n.zoom(1.25), reset: () => n.reset() })[button.dataset.nav]();
+    });
+  }
+  if (debug) addSimulatePanel(runway, active);
 
   const clock = new THREE.Clock();
   stage.renderer.setAnimationLoop(() => {
@@ -82,54 +103,19 @@ async function start() {
       }
     }
     stage.updateCamera();
+    people.update();
     hud.tick();
     stage.renderer.render(stage.scene, stage.camera);
   });
 }
 
-// The 🎛 button is on the live site too, so anyone can trigger every animation for testing.
-// The panel code (and lil-gui) only loads on first click.
-// 🚨 One-click demo: crash the office to 0.3 months of runway (night, panicking crowd),
-// and press again to release back to the real numbers (which reads as a big donation: cheers, dance, shooting stars).
-function addPanicButton(runway) {
-  const button = document.createElement("button");
-  button.className = "panic-toggle";
-  button.type = "button";
-  const render = () => {
-    button.textContent = runway.simulating ? "🎉 Save the office!" : "🚨 Panic!";
-    button.classList.toggle("active", runway.simulating);
-  };
-  button.addEventListener("click", async () => {
-    if (runway.simulating) await runway.release();
-    else runway.override({ funds: Math.round(0.3 * (runway.state.monthlyCost || 1000)), monthlyCost: runway.state.monthlyCost || 1000 });
-    render();
-  });
-  runway.events.addEventListener("fundschange", render);
-  render();
-  document.body.append(button);
-}
-
-function addSimulateButton(runway, active, { open }) {
+// The Simulate panel (lil-gui) is for development: `?debug` opens it. No button on the page.
+function addSimulatePanel(runway, active) {
   const css = document.createElement("link");
   css.rel = "stylesheet";
   css.href = new URL("./simulate.css", import.meta.url).href;
   document.head.append(css);
-
-  const button = document.createElement("button");
-  button.className = "sim-toggle";
-  button.type = "button";
-  button.textContent = "🎛 Simulate";
-  button.setAttribute("aria-expanded", "false");
-  document.body.append(button);
-
-  let gui = null;
-  async function toggle() {
-    if (!gui) gui = (await import("./debug-panel.js")).createDebugPanel(runway, active, config);
-    else gui.show(gui._hidden);
-    button.setAttribute("aria-expanded", String(!gui._hidden));
-  }
-  button.addEventListener("click", toggle);
-  if (open) toggle();
+  import("./debug-panel.js").then(({ createDebugPanel }) => createDebugPanel(runway, active, config));
 }
 
 start();
