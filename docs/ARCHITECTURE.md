@@ -3,15 +3,17 @@
 ## Goals
 
 1. **Four people build in parallel without merge conflicts.** Each workstream owns separate paths, and the only coupling is a small, explicit contract.
-2. **Free and boring infra.** A static site on GitHub Pages, no backend and no bundler.
+2. **Free and boring infra.** A static site on GitHub Pages and no bundler. The only backend is a Supabase project (Postgres + Auth) that the page reads through two public views; nothing of ours runs on a server.
 3. **One broken module never breaks the page.** Core isolates module failures.
 
 ## Data flow
 
 ```mermaid
 flowchart LR
-  sheet[Google Sheet<br/>funds, monthly_cost] -->|published CSV, every 60s| ds[core/data-source]
-  json[data.json<br/>fallback] --> ds
+  db[(Supabase<br/>payments, costs, balances)] -->|public_runway view, anon key, every 60s| ds[core/data-source]
+  sheet[Google Sheet<br/>fallback 1] --> ds
+  json[data.json<br/>fallback 2] --> ds
+  admin[/admin/ page<br/>editors sign in] -->|RLS: is_editor()| db
   ds --> rw[core/runway<br/>derive RunwayState]
   dbg[?debug panel] -->|override| rw
   rw -->|fundschange event + frame.state| logo[logo module]
@@ -19,9 +21,11 @@ flowchart LR
   rw --> hud[core/hud]
 
   photos[(donor photo<br/>local only)] --> maker[tools/avatar-maker]
-  maker -->|one JSON per donor, via PR| av[data/avatars/*.json]
-  av -->|npm run avatars / CI| idx[data/avatar-index.json]
-  idx -->|ctx.avatars| crowd
+  maker -->|save, editors only| db
+  db -->|public_avatars view| avl[core/avatars]
+  av[data/avatars/*.json<br/>samples + fallback] -->|npm run avatars / CI| idx[data/avatar-index.json]
+  idx --> avl
+  avl -->|ctx.avatars| crowd
   mii[crowd/mii.js buildMii] -.->|preview| maker
 ```
 
@@ -39,7 +43,7 @@ flowchart LR
 
 | Field | Meaning |
 |---|---|
-| `funds`, `monthlyCost` | Euros, from the sheet |
+| `funds`, `monthlyCost` | Euros, from Supabase (`public_runway`; rule in [DATABASE.md](DATABASE.md)) |
 | `runwayMonths` | `funds / monthlyCost` |
 | `stress` | `0..1` from an S-curve of the runway (below) |
 | `health` | `1 − stress` |
@@ -66,14 +70,14 @@ Each frame modules get **`frame.feelings`**: `stress` eases towards `state.stres
 
 ### Simulate
 
-A 🎛 **Simulate** button sits bottom-left on every page, including the live site; `?debug` opens it right away. It drives `runway.override()`, the same path real sheet updates take: runway slider, donate €200 / 1 month / 3 months, lose 1 month, crash, a 40-second story mode, the stress-curve knobs, and each module's own folder. "Back to live data" returns to the sheet.
+`?debug` opens the **Simulate** panel (no button on the page). It drives `runway.override()`, the same path real data updates take: runway slider, donate €200 / 1 month / 3 months, lose 1 month, crash, a 40-second story mode, the stress-curve knobs, and each module's own folder. "Back to live data" returns to the database.
 
 ### World layout
 
 The shared constants live in `src/contracts/module.js`. Units are roughly metres, y is up and the ground is y = 0.
 - Logo: centred at `(0, 2.5, 0)`, within a radius of 2.5.
 - Crowd: on the ground, in the ring between radius 3.5 and 11.
-- Core owns the camera, which looks at `(0, 1.8, 0)` from about 18 units away.
+- Core owns the camera, which looks at `(0, 1.8, 0)` from about 18 units away. Visitors orbit and zoom it (drag, wheel, pinch, arrow keys, or the buttons bottom right); `stage.navigation` exposes rotate/zoom/reset.
 
 ## Why these choices
 
@@ -83,13 +87,14 @@ The shared constants live in `src/contracts/module.js`. Units are roughly metres
 | One JSON file per donor, index generated in CI | One big `avatars.json` | Parallel avatar PRs never touch the same file |
 | Parametric Mii spec | Photo textures on faces | Privacy, a tiny payload, and a consistent Mii look |
 | No bundler, import map | Vite | Nothing to install for artists and designers. Revisit if we need npm packages that don't ship ESM |
-| Google Sheet CSV | Excel Online, a database | Free, CORS-enabled, and treasurers already use spreadsheets |
+| Supabase (Postgres + Auth), read via two public views with the anon key | Keep the Google Sheet; a custom backend | Payments need a history and a login, not one overwritten cell. RLS keeps individual payments private while the page stays static. The sheet remains as a fallback. |
+| Email + password sign-in; every MM account edits, admins listed in a table | Google SSO (needs a Google Cloud project the Workspace admin must grant) | Same flow as the reimbursement tool; Google can be switched on later without touching the policies. See [AUTH.md](AUTH.md) |
 | Error isolation in core | Trusting every module | Merging a half-finished module can't take the site down |
 
 ## Open decisions (core)
 
 - The real stress curve: `stress.midMonths` (the "sweat point") and `width`.
-- The sheet's owner and who updates the numbers.
+- Who reconciles the opening balance with the bank, and how often.
 - Whether donations should appear as events, such as a new Mii walking in when a donor is added.
 
 ## Garden navigation and group-emote extension
