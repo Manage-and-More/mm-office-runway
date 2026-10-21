@@ -42,6 +42,8 @@ export default function createCrowd({ root, avatars = [], events, reducedMotion,
   const options = { people: DEFAULT_CROWD_SIZE, paused: false, contagion: 1.5 };
   const stats = Object.fromEntries([['state', 'mood'], ['stress', '0.00'], ['away', 0], ...ACTIONS.map(a => [a, 0])]);
   const consented = avatars.filter(spec => spec?.consent?.public === true);
+  // Real people only: one Mii per MM account. The demo crowd only fills in while nobody has a Mii yet.
+  if (consented.length) options.people = consented.length;
   const random = seededRandom(20260918);
   let residents = [], batches, director, now = 0, crowdStress = 0;
   const listeners = new Set();
@@ -80,6 +82,15 @@ export default function createCrowd({ root, avatars = [], events, reducedMotion,
     batches = createCrowdBatches(root, residents.map(resident => resident.mii));
     batches.update();
     exodus = createExodus({ residents, random, reducedMotion, setBox: (r, on) => { r.mii.userData.box.visible = on; } });
+    root.userData.miis = () => residents.map(resident => resident.mii); // for core's name tags (buildMii names them mii:<id>)
+    // Core's click on a Mii: play one action now (wave / cheer / dance) with an optional emoji bubble.
+    root.userData.react = (id, action = 'wave', emoji = null) => {
+      const resident = residents.find(r => r.mii.name === `mii:${id}`);
+      if (!resident || resident.away) return false;
+      resident.reaction = { at: now, action, cycles: action === 'dance' ? 2 : 1 };
+      if (emoji) bubbles.show(resident, emoji, 2.2);
+      return true;
+    };
     root.userData.crowdSize = residents.length;
     root.userData.demoCount = Math.max(0, residents.length - consented.length);
     root.userData.state = 'mood';

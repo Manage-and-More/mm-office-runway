@@ -3,89 +3,69 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Avatar Maker</title>
+  <title>My Mii · MM Office Runway</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700&display=swap">
+  <link rel="stylesheet" href="../../admin/admin.css">
+  <link rel="stylesheet" href="avatar-maker.css">
   <!--
-    PLACEHOLDER — the avatar workstream replaces this.
-    The photo is opened locally with an object URL. It is never uploaded, stored or committed.
-    Output: one AvatarSpec JSON (src/contracts/avatar.schema.json) → data/avatars/<id>.json.
+    Only parameters leave this page: your AvatarSpec, saved to Supabase. No photos anywhere.
   -->
   <script type="importmap">
-    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
-  </script>
-  <style>
-    :root { color-scheme: dark; }
-    body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; background: #0b1026; color: #f4f7ff; }
-    main { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-    img, canvas { width: 100%; aspect-ratio: 1; object-fit: cover; background: #1c2446; border-radius: 8px; }
-    textarea { width: 100%; min-height: 360px; font: 12px ui-monospace, monospace; background: #111831; color: inherit; }
-    button { margin-top: 8px; }
-  </style>
-</head>
-<body>
-  <h1>Avatar Maker</h1>
-  <main>
-    <section>
-      <label>Donor photo (stays on this computer) <input type="file" id="photo" accept="image/*"></label>
-      <img id="preview" alt="">
-    </section>
-    <section>
-      <textarea id="spec" spellcheck="false"></textarea>
-      <button id="download">Download JSON</button>
-      <p id="error" role="alert"></p>
-    </section>
-    <section><canvas id="mii"></canvas></section>
-  </main>
-
-  <script type="module">
-    import * as THREE from "three";
-    import { buildMii } from "../../src/crowd/mii.js";
-
-    const template = await (await fetch("../../data/avatars/sample-ada.json")).json();
-    Object.assign(template, { id: "firstname-l", displayName: "", consent: { public: true, givenOn: new Date().toISOString().slice(0, 10) } });
-    const specEl = document.getElementById("spec");
-    specEl.value = JSON.stringify(template, null, 2);
-
-    document.getElementById("photo").addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (file) document.getElementById("preview").src = URL.createObjectURL(file);
-    });
-
-    const canvas = document.getElementById("mii");
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    const scene = new THREE.Scene();
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x333355, 2.5));
-    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 20);
-    camera.position.set(0, 0.8, 3);
-    camera.lookAt(0, 0.6, 0);
-    let mii;
-
-    function rebuild() {
-      try {
-        const spec = JSON.parse(specEl.value);
-        if (mii) scene.remove(mii);
-        mii = buildMii(spec);
-        scene.add(mii);
-        document.getElementById("error").textContent = "";
-      } catch (err) {
-        document.getElementById("error").textContent = err.message;
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/+esm"
       }
     }
-    specEl.addEventListener("input", rebuild);
-    rebuild();
-
-    renderer.setAnimationLoop((t) => {
-      renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
-      if (mii) mii.rotation.y = Math.sin(t / 1000) * 0.6;
-      renderer.render(scene, camera);
-    });
-
-    document.getElementById("download").addEventListener("click", () => {
-      const spec = JSON.parse(specEl.value);
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(new Blob([JSON.stringify(spec, null, 2) + "\n"], { type: "application/json" }));
-      a.download = `${spec.id}.json`;
-      a.click();
-    });
   </script>
+  <script type="module" src="avatar-maker.js"></script>
+</head>
+<body>
+  <header class="top">
+    <a class="back" href="../../">← Runway</a>
+    <h1 class="title">My Mii</h1>
+    <div class="who" id="who" hidden><span id="who-email"></span></div>
+  </header>
+
+  <main id="main" aria-live="polite">
+    <section class="card" data-view="loading"><p>Checking your session…</p></section>
+
+    <section class="card" data-view="unconfigured" hidden>
+      <h2>Supabase isn't configured yet</h2>
+      <p>Set <code>config.supabase</code> in <code>config.js</code>, or for local dev follow <code>docs/AUTH.md</code>.</p>
+    </section>
+
+    <section class="card" data-view="locked" hidden>
+      <h2>Manage and More members only</h2>
+      <p id="locked-reason">Sign in on the runway page first, then come back here.</p>
+      <p><a class="button" href="../../">Go to the runway page</a></p>
+    </section>
+
+    <section data-view="editor" hidden class="editor">
+      <form class="card form" id="form" autocomplete="off">
+        <h2 id="form-title">Your Mii</h2>
+        <p class="muted small" id="form-hint">This is you on the runway page. One Mii per person; it's saved to your account.</p>
+        <div id="fields"></div>
+        <div class="row actions">
+          <button type="submit" class="primary" id="save">Save</button>
+          <button type="button" id="random">🎲 Random look</button>
+          <button type="button" class="danger" id="delete" hidden>Remove my Mii</button>
+        </div>
+        <p class="muted small">By clicking Save, you agree to appear publicly. It won't show your name.</p>
+        <p class="notice" id="notice" role="status"></p>
+        <p class="error" id="error" role="alert"></p>
+      </form>
+
+      <section class="card preview">
+        <h2>Preview</h2>
+        <canvas id="mii"></canvas>
+        <p class="muted small">Rendered with the crowd's real <code>buildMii</code>, so this is what walks on the page.</p>
+      </section>
+
+    </section>
+  </main>
 </body>
 </html>

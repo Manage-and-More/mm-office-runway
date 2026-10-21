@@ -84,13 +84,19 @@ export function createAvatar(spec = {}) {
       ellipsoid(hair, materials.hair, [Math.cos(angle) * 0.38, 0.22 + Math.sin(angle) * 0.3, 0.03], [0.20, 0.20, 0.35]);
     }
   }
+  // Eyes, brows, nose and mouth follow the spec; unknown values fall back to the first option.
+  const eyeShape = { round: [0.048, 0.076], almond: [0.058, 0.06], narrow: [0.062, 0.044], wide: [0.056, 0.092], sleepy: [0.06, 0.05] }[spec.eyes?.style] ?? [0.048, 0.076];
+  const browShape = { straight: [0.073, 0.018, 0], arched: [0.07, 0.02, 0.3], thick: [0.078, 0.032, 0.08], thin: [0.07, 0.011, 0.1] }[spec.eyebrows] ?? [0.073, 0.018, 0];
+  const noseShape = { small: [0.055, 0.055, 0.06], button: [0.075, 0.07, 0.085], long: [0.06, 0.1, 0.08], wide: [0.095, 0.06, 0.075] }[spec.nose] ?? [0.069, 0.068, 0.078];
   const eyes = [], brows = [];
   for (const sign of [-1, 1]) {
-    const eye = ellipsoid(head, materials.eye, [sign * 0.165, 0.01, 0.375], [0.048, 0.076, 0.024]); eyes.push(eye);
+    const eye = ellipsoid(head, materials.eye, [sign * 0.165, 0.01, 0.375], [eyeShape[0], eyeShape[1], 0.024]); eyes.push(eye);
+    if (spec.eyes?.style === 'sleepy') eye.rotation.z = sign * 0.25;
     ellipsoid(eye, materials.white, [-0.22, 0.26, 0.85], [0.25, 0.22, 0.25]);
-    const brow = ellipsoid(head, materials.hair, [sign * 0.165, 0.15, 0.366], [0.073, 0.018, 0.018]); brows.push(brow);
+    const brow = ellipsoid(head, materials.hair, [sign * 0.165, 0.15 + (spec.eyebrows === 'arched' ? 0.02 : 0), 0.366], [browShape[0], browShape[1], 0.018]); brows.push(brow);
   }
-  ellipsoid(head, materials.skin, [0, -0.075, 0.407], [0.069, 0.068, 0.078]);
+  const browTilt = browShape[2]; // resting outward tilt (arched); worry tilts further in applyPose
+  ellipsoid(head, materials.skin, [0, -0.075, 0.407], noseShape);
   if (['round', 'square', 'sunglasses'].includes(spec.glasses)) {
     for (const sign of [-1, 1]) {
       const frame = new THREE.Mesh(glassesGeometry, materials.hair);
@@ -101,7 +107,15 @@ export function createAvatar(spec = {}) {
   }
   if (['beard', 'stubble'].includes(spec.facialHair)) ellipsoid(head, materials.hair, [0, -0.34, 0.225], [0.26, 0.16, 0.11]);
   if (spec.facialHair === 'mustache') ellipsoid(head, materials.hair, [0, -0.17, 0.37], [0.13, 0.035, 0.024]);
+  // Resting mouth per spec: a smile curve (smile / grin / small) or a flat line (neutral); the open mouth is for talking/cheering.
   const smile = new THREE.Mesh(smileGeometry, defaults.eye); head.add(smile);
+  const mouthStyle = ['smile', 'neutral', 'grin', 'small'].includes(spec.mouth) ? spec.mouth : 'smile';
+  // Scale only across the face (x, y), never in depth, so the curve stays on the skin.
+  if (mouthStyle === 'grin') { smile.scale.set(1.3, 1.15, 1); smile.position.y = -0.01; }
+  if (mouthStyle === 'small') { smile.scale.set(0.6, 0.65, 1); smile.position.y = -0.08; }
+  const flat = ellipsoid(head, defaults.eye, [0, -0.24, 0.378], [0.075, 0.012, 0.012]);
+  const rest = mouthStyle === 'neutral' ? flat : smile;
+  smile.visible = rest === smile; flat.visible = rest === flat;
   const mouth = ellipsoid(head, defaults.eye, [0, -0.235, 0.37], [0.077, 0.07, 0.025]);
   for (const [side, sign] of [['left', 1], ['right', -1]]) {
     const arm = bone(`${side}UpperArm`, spine, sign * 0.30, 0.49);
@@ -129,9 +143,9 @@ export function createAvatar(spec = {}) {
     for (const name of JOINTS) { const r = pose.joints[name]; bones[name].rotation.set(r[0], r[1], r[2]); }
     hips.position.set(pose.root[0] * 2.7, restHipsY + pose.root[1] * 2.7, pose.root[2] * 2.7);
     for (const eye of eyes) eye.scale.y = 0.076 * (1 - 0.94 * pose.blink);
-    brows[0].rotation.z = -Math.max(expression, pose.worried) * 0.35;
-    brows[1].rotation.z = Math.max(expression, pose.worried) * 0.35;
-    mouth.visible = pose.mouth > 0.12; smile.visible = !mouth.visible;
+    brows[0].rotation.z = -browTilt - Math.max(expression, pose.worried) * 0.35;
+    brows[1].rotation.z = browTilt + Math.max(expression, pose.worried) * 0.35;
+    mouth.visible = pose.mouth > 0.12; rest.visible = !mouth.visible;
     mouth.scale.y = 0.025 + 0.07 * pose.mouth;
     food.visible = pose.food > 0.01; food.scale.setScalar(pose.food);
   }
