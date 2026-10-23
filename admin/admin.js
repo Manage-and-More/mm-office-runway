@@ -202,7 +202,7 @@ async function main(supabase) {
   function resetMomentForm() {
     $("moment-form").reset(); $("moment-id").value = ""; $("moment-table").value = ""; $("moment-date").value = today();
     showKindFields();
-    $("moment-save").textContent = "Add moment"; $("moment-cancel").hidden = true;
+    $("moment-save").textContent = "Add highlight"; $("moment-cancel").hidden = true;
   }
 
   async function renderCosts() {

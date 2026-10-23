@@ -83,13 +83,13 @@
       <p class="muted small">funds = latest opening balance + payments entered after it − months elapsed × monthly cost. The public page re-reads this every minute.</p>
       <p><a class="button" href="../tools/avatar-maker/">🧑‍🎨 My Mii</a></p>
 
-      <h3>Moments</h3>
-      <p class="muted">Everything worth celebrating: members' moments, their donations, and sponsor or partner money. Names never reach the public page.</p>
+      <h3>Highlights</h3>
+      <p class="muted">Everything worth celebrating: members' highlights and the money they raised. Names never reach the public page.</p>
       <form id="moment-form" class="grid-form">
         <input type="hidden" id="moment-id"><input type="hidden" id="moment-table">
         <label>Kind
           <select id="moment-kind">
-            <option value="moment">✨ Moment</option>
+            <option value="moment">✨ Highlight</option>
             <option value="money">💛 Raised money</option>
           </select>
         </label>
@@ -99,7 +99,7 @@
         <label data-for="money">Amount (€) <input type="number" id="moment-amount" min="0.01" step="0.01"></label>
         <label data-for="money" class="wide">Note (optional, e.g. the sponsor) <input type="text" id="moment-note" maxlength="300"></label>
         <div class="row wide">
-          <button type="submit" class="primary" id="moment-save">Add moment</button>
+          <button type="submit" class="primary" id="moment-save">Add highlight</button>
           <button type="button" id="moment-cancel" hidden>Cancel</button>
         </div>
       </form>

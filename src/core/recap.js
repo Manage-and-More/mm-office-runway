@@ -46,7 +46,7 @@ export function createRecap({ stage, crowdRoot }) {
     // 1. Title: slow orbit, zoomed out a little.
     stage.navigation.zoom(1.15);
     spin(0.0025);
-    const intro = card("title", `<small>Manage and More · Highlights</small><h1>${esc(title)}</h1><p>what we did</p>`, 4500);
+    const intro = card("title", `<small>Manage and More · Monthly recap</small><h1>${esc(title)}</h1><p>what we did</p>`, 4500);
     await intro.done; await intro.remove();
 
     // 2. One chapter per member: zoom in, their Mii dances, moments pop up one by one, neighbours cheer.
@@ -71,7 +71,7 @@ export function createRecap({ stage, crowdRoot }) {
     stage.navigation.zoom(1.5);
     const numbers = card("numbers", `
       <div><b>${totals.members}</b><span>member${totals.members === 1 ? "" : "s"}</span></div>
-      <div><b>${totals.moments}</b><span>moment${totals.moments === 1 ? "" : "s"}</span></div>
+      <div><b>${totals.moments}</b><span>highlight${totals.moments === 1 ? "" : "s"}</span></div>
       ${totals.moneyRaised > 0 ? `<div><b>${esc(totals.money)}</b><span>raised</span></div><div><b>${esc(totals.runwayBought)}</b><span>of runway bought</span></div>` : ""}`, 5000);
     await numbers.done; await numbers.remove();
 

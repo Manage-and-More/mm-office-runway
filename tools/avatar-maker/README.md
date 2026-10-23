@@ -10,7 +10,7 @@ popup). A picker generated from the schema's enums, a live 3D preview with the c
 and Save / Remove against the Supabase `avatars` table. One Mii per account, enforced by the database;
 the id is derived from the account (`arnav.singh@…` → `arnav-singh`).
 
-An admin adding a moment for someone without a Mii creates one for them (random, anonymous, "unclaimed"); the
+An admin adding a highlight for someone without a Mii creates one for them (random, anonymous, "unclaimed"); the
 person sees "A Mii is waiting for you" on first sign-in. The crowd on the page shows real people's Miis only. The demo crowd fills in only while nobody has a Mii yet.
 
 ## Privacy rules (hard requirements)

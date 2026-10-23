@@ -45,7 +45,7 @@ async function main(supabase) {
     mine = data;
     if (mine && mine.claimed === false) {
       $("form-title").textContent = "A Mii is waiting for you";
-      $("form-hint").textContent = "An admin added a moment for you and created this Mii with a random look. Make it yours and save, or remove it.";
+      $("form-hint").textContent = "An admin added a highlight for you and created this Mii with a random look. Make it yours and save, or remove it.";
       $("delete").hidden = false;
       form.write(mine.spec);
     } else if (mine) {

@@ -94,9 +94,9 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
       return;
     }
     bar.append(
-      el("button", { type: "button", class: "member-btn primary", onclick: () => openMoment() }, ["✨ Add a moment"]),
+      el("button", { type: "button", class: "member-btn primary", onclick: () => openMoment() }, ["✨ Add a highlight"]),
       el("button", { type: "button", class: "member-btn", onclick: () => openMiis() }, ["🧑‍🎨 My Mii"]),
-      playHighlights ? el("button", { type: "button", class: "member-btn", onclick: () => openHighlights() }, ["🎬 Highlights"]) : "",
+      playHighlights ? el("button", { type: "button", class: "member-btn", onclick: () => openHighlights() }, ["🎬 Recap"]) : "",
       isAdmin ? el("a", { class: "member-btn", href: "admin/" }, ["🛠 Admin"]) : "",
       el("span", { class: "member-who", title: email }, [email.split("@")[0]]),
       el("button", { type: "button", class: "member-btn quiet", onclick: async () => { await (await client()).auth.signOut(); } }, ["Sign out"]),
@@ -162,7 +162,7 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
 
   async function openMoment() {
     const sb = await client();
-    const kind = el("select", {}, [new Option("✨ Moment", "moment"), new Option("💛 Raised money", "donation")]);
+    const kind = el("select", {}, [new Option("✨ Highlight", "moment"), new Option("💛 Raised money", "donation")]);
     const date = el("input", { type: "date", required: true, value: today() });
     const text = el("input", { type: "text", maxlength: 80, placeholder: "e.g. 5 lecture visits", autofocus: true });
     const amount = el("input", { type: "number", min: "0.01", step: "0.01", inputmode: "decimal" });
@@ -177,7 +177,7 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
     who.addEventListener("change", () => { otherField.hidden = who.value !== "other"; if (!otherField.hidden) otherEmail.focus(); });
     const box = el("p", { class: "member-notice" });
     const form = el("form", { class: "member-form" }, [
-      el("p", { class: "muted" }, [myMii ? `Posted as ${myMii.name}. Only signed-in members see names.` : "Create your Mii first so moments show up on it."]),
+      el("p", { class: "muted" }, [myMii ? `Posted as ${myMii.name}. Only signed-in members see names.` : "Create your Mii first so highlights show up on it."]),
       el("div", { class: "member-grid" }, [
         isAdmin ? el("label", {}, ["For", who]) : "",
         isAdmin ? otherField : "",
@@ -187,7 +187,7 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
       el("div", { class: "member-row" }, [el("button", { type: "submit", class: "member-btn primary" }, ["Add 🎉"])]),
       box,
     ]);
-    const d = dialog("Add a moment", form);
+    const d = dialog("Add a highlight", form);
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       // Whose moment is it?
@@ -215,7 +215,7 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
       if (target.email !== email) {
         // Added for someone else: offer a one-click invite note, then close.
         const subject = encodeURIComponent("You're on the Manage and More runway page");
-        const body = encodeURIComponent(`Hi!\n\nI just added a moment for you on our runway page: "${kind.value === "donation" ? `raised €${amount.value}` : text.value.trim()}".\n\n${target.created ? "A Mii is waiting for you too. " : ""}Sign in with your MM address and make it yours: ${here}\n\nSee you there!`);
+        const body = encodeURIComponent(`Hi!\n\nI just added a highlight for you on our runway page: "${kind.value === "donation" ? `raised €${amount.value}` : text.value.trim()}".\n\n${target.created ? "A Mii is waiting for you too. " : ""}Sign in with your MM address and make it yours: ${here}\n\nSee you there!`);
         form.replaceChildren(
           el("p", {}, [`Added for ${target.email}.${target.created ? " A Mii was created for them; they can restyle it when they sign in." : ""}`]),
           el("div", { class: "member-row" }, [
@@ -262,18 +262,18 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
     const select = el("select", {}, options.map((o, i) => new Option(monthLabel(o.y, o.m) + (i === 0 ? " (so far)" : ""), i)));
     const box = el("p", { class: "member-notice" });
     const form = el("form", { class: "member-form" }, [
-      el("p", { class: "muted" }, ["A one-minute show of everyone's moments and donations in that month."]),
+      el("p", { class: "muted" }, ["A one-minute show of everyone's highlights and raised money in that month."]),
       el("label", {}, ["Month", select]),
       el("div", { class: "member-row" }, [el("button", { type: "submit", class: "member-btn primary" }, ["▶ Play"])]),
       box,
     ]);
-    const d = dialog("Highlights", form);
+    const d = dialog("Monthly recap", form);
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const { y, m } = options[Number(select.value)];
       msg(box, "Loading…");
       const played = await playHighlights(await loadMonth(y, m), monthLabel(y, m));
-      if (!played) return msg(box, `Nothing to show for ${monthLabel(y, m)} yet. Add a moment!`, true);
+      if (!played) return msg(box, `Nothing to show for ${monthLabel(y, m)} yet. Add a highlight!`, true);
       d.close();
     });
   }
