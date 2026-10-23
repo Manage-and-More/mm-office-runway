@@ -188,7 +188,7 @@ async function main(supabase) {
     $("moment-id").value = r.id; $("moment-table").value = r.table;
     if (r.table === "moments") {
       $("moment-kind").value = "moment"; $("moment-date").value = r.raw.happened_on; $("moment-email").value = r.raw.owner_email;
-      $("moment-emoji").value = r.raw.emoji; $("moment-text").value = r.raw.text;
+      $("moment-text").value = r.raw.text;
     } else {
       $("moment-kind").value = "money";
       $("moment-date").value = r.raw.received_on; $("moment-amount").value = r.raw.amount; $("moment-note").value = r.raw.note || "";
@@ -200,7 +200,7 @@ async function main(supabase) {
   }
 
   function resetMomentForm() {
-    $("moment-form").reset(); $("moment-id").value = ""; $("moment-table").value = ""; $("moment-date").value = today(); $("moment-emoji").value = "🎉";
+    $("moment-form").reset(); $("moment-id").value = ""; $("moment-table").value = ""; $("moment-date").value = today();
     showKindFields();
     $("moment-save").textContent = "Add moment"; $("moment-cancel").hidden = true;
   }
@@ -237,7 +237,7 @@ async function main(supabase) {
           if (!emailFor.includes("@")) throw new Error("Enter the member's MM address.");
           if (!$("moment-text").value.trim()) throw new Error("Say what they did, in a few words.");
           await ensureMii(supabase, emailFor, "../src/contracts/avatar.schema.json");
-          const row = { owner_email: emailFor, emoji: $("moment-emoji").value.trim() || "🎉", text: $("moment-text").value.trim(), happened_on: date };
+          const row = { owner_email: emailFor, text: $("moment-text").value.trim(), happened_on: date };
           const { error } = id && table === "moments" ? await supabase.from("moments").update(row).eq("id", id) : await supabase.from("moments").insert(row);
           if (error) throw error;
           if (id && table === "payments") await supabase.from("payments").delete().eq("id", id); // kind changed: move it over

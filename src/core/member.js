@@ -164,10 +164,9 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
     const sb = await client();
     const kind = el("select", {}, [new Option("✨ Moment", "moment"), new Option("💛 Raised money", "donation")]);
     const date = el("input", { type: "date", required: true, value: today() });
-    const emoji = el("input", { type: "text", value: "🎉", maxlength: 8, class: "member-emoji", title: "Any emoji" });
     const text = el("input", { type: "text", maxlength: 80, placeholder: "e.g. 5 lecture visits", autofocus: true });
     const amount = el("input", { type: "number", min: "0.01", step: "0.01", inputmode: "decimal" });
-    const momentFields = el("div", { class: "member-grid" }, [el("label", {}, ["Emoji", emoji]), el("label", { class: "wide" }, ["What did you do?", text])]);
+    const momentFields = el("div", { class: "member-grid" }, [el("label", { class: "wide" }, ["What did you do?", text])]);
     const donationFields = el("div", { class: "member-grid", hidden: true }, [el("label", {}, ["Amount (€)", amount])]);
     kind.addEventListener("change", () => { const d = kind.value === "donation"; donationFields.hidden = !d; momentFields.hidden = d; });
     // Admins can add a moment for another member, by MM address. If that person has no Mii yet,
@@ -210,7 +209,7 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
         if (error) return msg(box, error.message, true);
       } else {
         if (!text.value.trim()) return msg(box, "Say what you did, in a few words.", true);
-        const { error } = await sb.from("moments").insert({ owner_email: target.email, emoji: emoji.value.trim() || "🎉", text: text.value.trim(), happened_on: date.value });
+        const { error } = await sb.from("moments").insert({ owner_email: target.email, text: text.value.trim(), happened_on: date.value });
         if (error) return msg(box, error.message, true);
       }
       if (target.email !== email) {
@@ -224,12 +223,12 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
             el("button", { type: "button", class: "member-btn", onclick: () => d.close() }, ["Done"]),
           ]),
         );
-        if (kind.value === "donation") await onPaymentAdded(); else onMoment?.(target.mii?.id || null, emoji.value.trim() || "🎉");
+        if (kind.value === "donation") await onPaymentAdded(); else onMoment?.(target.mii?.id || null, "🎉");
         if (target.created) miiChanged = true; // a new figure: the crowd shows it on the next load
       } else {
         d.close();
         if (kind.value === "donation") await onPaymentAdded(); // the runway re-reads at once: the crowd cheers for real money
-        else onMoment?.(myMii?.id || null, emoji.value.trim() || "🎉");
+        else onMoment?.(myMii?.id || null, "🎉");
       }
       loadPeople();
     });

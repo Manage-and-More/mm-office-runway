@@ -310,7 +310,6 @@ body[data-mood="panic"] .chip.edge i { animation-duration: 0.6s; }
 .member-form input, .member-form select { font: inherit; padding: 0.5em 0.8em; border-radius: 10px; border: 1.5px solid rgb(35 41 92 / 0.25); background: #fff; color: var(--ink); }
 .member-grid { display: grid; gap: 10px 12px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
 .member-grid .wide { grid-column: 1 / -1; }
-.member-emoji { font-size: 1.4rem; width: 5em; text-align: center; }
 .member-dialog [hidden] { display: none !important; }
 .member-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .member-check { flex-direction: row !important; align-items: center; gap: 8px; }
