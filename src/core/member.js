@@ -88,6 +88,7 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
   }
 
   function render() {
+    document.body.classList.toggle("member", !!email); // unlocks the runway numbers (style.css)
     bar.replaceChildren();
     if (!email) {
       bar.append(el("button", { type: "button", class: "member-btn", onclick: () => openSignIn() }, ["🔑 Sign in"]));

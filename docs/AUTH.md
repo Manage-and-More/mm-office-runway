@@ -13,7 +13,7 @@ Three kinds of people, nothing more:
 
 | | Who | May |
 |---|---|---|
-| **Public viewer** | anyone on the website, no login | read the two aggregate views (`public_runway`, `public_avatars`) |
+| **Public viewer** | anyone on the website, no login | see the garden and the Miis (the runway numbers and their toggle appear only after sign-in) |
 | **Editor** | anyone signed in with a confirmed Manage and More account | add payments, design their own Mii |
 | **Admin** | editors listed in `public.admins` | also edit/delete everything on `/admin/` and manage the admin list and allowed domains |
 

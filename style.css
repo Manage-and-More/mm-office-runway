@@ -577,4 +577,6 @@ body.recap-playing .hud, body.recap-playing .member-bar, body.recap-playing .nav
 .hud-toggle:hover, .hud-toggle:focus-visible { border-color: var(--accent); }
 .hud-toggle[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
 body.hud-hidden .hud { display: none; }
+/* The runway numbers and their toggle are for signed-in members only; public viewers see the garden. */
+body:not(.member) .hud, body:not(.member) .hud-toggle { display: none; }
 @media (max-width: 850px) { .hud-toggle { top: auto; bottom: 64px; left: 16px; font-size: 12px; } }
