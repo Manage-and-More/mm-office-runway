@@ -167,7 +167,8 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
     const text = el("input", { type: "text", maxlength: 80, placeholder: "e.g. 5 lecture visits", autofocus: true });
     const amount = el("input", { type: "number", min: "0.01", step: "0.01", inputmode: "decimal" });
     const momentFields = el("div", { class: "member-grid" }, [el("label", { class: "wide" }, ["What did you do?", text])]);
-    const donationFields = el("div", { class: "member-grid", hidden: true }, [el("label", {}, ["Amount (€)", amount])]);
+    const note = el("input", { type: "text", maxlength: 300, placeholder: "e.g. the sponsor or the occasion" });
+    const donationFields = el("div", { class: "member-grid", hidden: true }, [el("label", {}, ["Amount (€)", amount]), el("label", {}, ["Note (optional)", note])]);
     kind.addEventListener("change", () => { const d = kind.value === "donation"; donationFields.hidden = !d; momentFields.hidden = d; });
     // Admins can add a moment for another member, by MM address. If that person has no Mii yet,
     // one is created for them (random look, no name, unclaimed) so the moment has a figure.
@@ -205,6 +206,7 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
         const { error } = await sb.from("payments").insert({
           amount: Number(amount.value), received_on: date.value, kind: "donation",
           payer_name: target.mii?.name || target.email.split("@")[0], donor_id: target.mii?.id || null,
+          note: note.value.trim() || null,
         });
         if (error) return msg(box, error.message, true);
       } else {
