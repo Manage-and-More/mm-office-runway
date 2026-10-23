@@ -100,7 +100,7 @@ export function createRecap({ stage, crowdRoot }) {
         });
         stage.navigation.zoomTo(0.24); // a portrait: the Mii fills about half the frame
       }
-      await sleep(800); // let the camera arrive before the card appears
+      await sleep(1200); // let the camera swing over and settle before the card appears
       react(ch.id, "dance", "🎉");
       for (const other of everyone()) if (other !== ch.id && Math.random() < 0.5) react(other, "cheer");
       const c = card("chapter", `<div class="who">${esc(ch.name)}</div><ul></ul>`, 0);
@@ -113,7 +113,7 @@ export function createRecap({ stage, crowdRoot }) {
         await sleep(1200);
       }
       react(ch.id, "dance", "🥳");
-      await sleep(Math.max(900, 4500 - (performance.now() - started))); // every chapter gets at least 4.5 s on screen
+      await sleep(Math.max(900, 4900 - (performance.now() - started))); // every chapter gets at least 4.9 s on screen
       await c.remove();
     }
 
