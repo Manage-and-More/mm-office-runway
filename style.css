@@ -550,6 +550,8 @@ body[data-mood="panic"] .chip.edge i { animation-duration: 0.6s; }
 /* Highlights show overlay (src/core/recap.js) */
 .recap { position: fixed; inset: 0; pointer-events: none; z-index: 4; display: grid; place-items: end center; padding-bottom: 8vh; }
 .recap[hidden] { display: none; }
+.recap-skip { position: fixed; top: 20px; right: 20px; pointer-events: auto; }
+.recap-sound { position: fixed; top: 20px; right: 110px; pointer-events: auto; }
 body.recap-playing .hud, body.recap-playing .member-bar, body.recap-playing .nav, body.recap-playing .people, body.recap-playing .hud-toggle { opacity: 0; transition: opacity 0.6s; }
 .recap-card { pointer-events: auto; opacity: 0; transform: translateY(16px) scale(0.98); transition: opacity 0.5s, transform 0.5s; color: var(--ink); font-family: var(--font-body); text-align: center; }
 .recap-card.in { opacity: 1; transform: none; }

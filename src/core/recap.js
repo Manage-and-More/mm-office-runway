@@ -3,6 +3,8 @@
 // Signed-in members start it from the bar; ?recap plays it on load. Camera moves go through
 // stage.navigation, reactions through the crowd's react()/groupEmotes hooks.
 
+import { createMusic } from "./music.js";
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
 
@@ -34,12 +36,36 @@ export function createRecap({ stage, crowdRoot }) {
    * @param {{ id: string, name: string, moments: { emoji: string, text: string }[] }[]} chapters  one per member
    * @param {{ members: number, moments: number, money: string, runwayBought: string }} totals
    */
-  let playing = false;
+  const music = createMusic();
+  let playing = false, skip = false, onEscape = null;
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && playing) { if (onEscape) onEscape(); else skip = true; } });
+
+  function finish() {
+    for (const c of layer.querySelectorAll(".recap-card, .recap-skip, .recap-sound")) c.remove();
+    music.stop();
+    spin(0);
+    layer.hidden = true;
+    document.body.classList.remove("recap-playing");
+    stage.navigation.reset();
+    playing = false;
+    console.info("[recap] end");
+  }
+
   async function play(chapters, totals, title) {
     if (playing) { console.warn("[recap] play() called while already playing"); return; }
-    playing = true;
+    playing = true; skip = false;
     console.info("[recap] start", chapters.length, "chapters");
     layer.hidden = false;
+    // ✕ Skip (or Escape) ends the show at the next step.
+    const skipBtn = el("button", "member-btn recap-skip", "✕ Skip");
+    skipBtn.type = "button";
+    skipBtn.addEventListener("click", () => { skip = true; });
+    const soundBtn = el("button", "member-btn recap-sound", music.muted ? "🔇 Music off" : "🔊 Music on");
+    soundBtn.type = "button"; soundBtn.title = "Toggle the music";
+    soundBtn.addEventListener("click", () => { soundBtn.textContent = music.toggle() ? "🔇 Music off" : "🔊 Music on"; music.start(); });
+    layer.append(skipBtn, soundBtn);
+    music.start(); // silent until the browser allows sound (needs a click: the Recap button or this toggle)
+    const sleep = async (ms) => { for (let left = ms; left > 0 && !skip; left -= 100) await new Promise((r) => setTimeout(r, Math.min(100, left))); };
     document.body.classList.add("recap-playing");
     stage.navigation.reset();
 
@@ -54,6 +80,7 @@ export function createRecap({ stage, crowdRoot }) {
     spin(0);
     const tmp = new (await import("three")).Vector3();
     for (const [i, ch] of chapters.entries()) {
+      if (skip) break;
       const mii = (crowdRoot?.userData.miis?.() ?? []).find((m) => m.name === `mii:${ch.id}`);
       const started = performance.now();
       if (mii) {
@@ -80,6 +107,7 @@ export function createRecap({ stage, crowdRoot }) {
     }
 
     // 3. The numbers: back to the whole garden.
+    if (skip) return finish();
     stage.navigation.focus(null);
     stage.navigation.zoomTo(1.5);
     spin(0.0025);
@@ -95,15 +123,23 @@ export function createRecap({ stage, crowdRoot }) {
     stage.celebrate?.(1);
     await sleep(6000);
     spin(0);
-    const end = card("title end", `<h1>Thank you 💚</h1><p>see you next month</p><button type="button" class="member-btn primary">▶ Play again</button>`, 0);
-    end.el.querySelector("button").addEventListener("click", async () => { await end.remove(); play(chapters, totals, title); });
-    await sleep(8000);
+    skipBtn.remove();
+    if (skip) return finish();
+    // The end card stays until a choice is made (Escape = back).
+    const end = card("title end", `<h1>Thank you 💚</h1><p>see you next month</p>
+      <div class="member-row" style="justify-content:center">
+        <button type="button" class="member-btn primary" data-act="again">▶ Play again</button>
+        <button type="button" class="member-btn" data-act="back">← Back to the garden</button>
+      </div>`, 0);
+    const choice = await new Promise((resolve) => {
+      end.el.querySelector('[data-act="again"]').addEventListener("click", () => resolve("again"));
+      end.el.querySelector('[data-act="back"]').addEventListener("click", () => resolve("back"));
+      onEscape = () => resolve("back");
+    });
+    onEscape = null;
     await end.remove();
-    layer.hidden = true;
-    document.body.classList.remove("recap-playing");
-    stage.navigation.reset();
-    playing = false;
-    console.info("[recap] end");
+    finish();
+    if (choice === "again") play(chapters, totals, title);
   }
 
   return { play };
