@@ -94,7 +94,10 @@ export function createStage(canvas) {
     /** Programmatic zoom level (1 = home). */
     zoomTo(level) { nav.targetZoom = clampZoom(level); },
     /** Follow a moving point: a function returning a Vector3 each frame (the face itself when atHead), or null for the garden. */
-    focus(getPosition, { atHead = false, getHeading = null } = {}) { nav.follow = getPosition; nav.followAtHead = atHead; nav.followHeading = getHeading; },
+    /** `avoid` returns the positions (Vector3[]) of others who must not stand between camera and face. */
+    focus(getPosition, { atHead = false, getHeading = null, avoid = null } = {}) {
+      nav.follow = getPosition; nav.followAtHead = atHead; nav.followHeading = getHeading; nav.avoid = avoid; nav.avoidOffset = 0; nav.avoidCheckedAt = 0;
+    },
     reset() { nav.targetAzimuth = Math.round(nav.targetAzimuth / (2 * Math.PI)) * 2 * Math.PI; nav.targetZoom = 1; nav.follow = null; nav.followHeading = null; },
   };
   const surface = renderer.domElement;
@@ -137,7 +140,27 @@ export function createStage(canvas) {
     if (followed) lookGoal.set(followed.x, followed.y + (nav.followAtHead ? 0 : 0.9), followed.z); else lookGoal.copy(lookAt);
     if (followed && nav.followHeading) {
       // Stand in front of the face: Miis face +Z in their own frame, so the camera goes where they look.
-      let heading = nav.followHeading();
+      // If someone else stands in the line of sight, step sideways to the nearest clear angle (re-checked twice a second).
+      const base = nav.followHeading();
+      const now = performance.now();
+      if (nav.avoid && now - nav.avoidCheckedAt > 500) {
+        nav.avoidCheckedAt = now;
+        const others = nav.avoid();
+        const r = cameraHome.z * nav.targetZoom;
+        const clear = (offset) => {
+          const cx = followed.x + Math.sin(base + offset) * r, cz = followed.z + Math.cos(base + offset) * r;
+          const dx = cx - followed.x, dz = cz - followed.z, len2 = dx * dx + dz * dz;
+          for (const o of others) {
+            const t = ((o.x - followed.x) * dx + (o.z - followed.z) * dz) / len2; // where along face→camera
+            if (t <= 0.05 || t >= 1) continue;
+            const px = followed.x + dx * t, pz = followed.z + dz * t;
+            if (Math.hypot(o.x - px, o.z - pz) < 0.7) return false; // within a Mii's width of the sight line
+          }
+          return true;
+        };
+        if (!clear(nav.avoidOffset)) nav.avoidOffset = [0, 0.45, -0.45, 0.9, -0.9, 1.3, -1.3].find(clear) ?? nav.avoidOffset;
+      }
+      let heading = base + (nav.avoidOffset || 0);
       heading += Math.round((nav.targetAzimuth - heading) / (2 * Math.PI)) * 2 * Math.PI; // nearest turn, no spinning round
       nav.targetAzimuth = heading;
     }
