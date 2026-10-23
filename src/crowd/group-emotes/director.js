@@ -37,6 +37,20 @@ export function createGroupDirector(residents, { reducedMotion = false, navigati
     if (phase.type === 'formation' && !reducedMotion) {
       const slots = formations[phase.formation](actors.length);
       const targets = assignSlots(residents.map(resident => resident.mii.position), slots);
+      if (phase.snap) {
+        // Everyone is placed at once (a show that must start in formation), facing as the next phase asks.
+        for (let i = 0; i < actors.length; i++) {
+          const mii = actors[i].resident.mii, t = targets[i];
+          mii.position.set(t.x, 0, t.z);
+          const next = active.phases[phaseIndex + 1];
+          if (next?.facing === 'outward') mii.rotation.y = Math.atan2(t.x, t.z);
+          else if (next?.facing === 'center') mii.rotation.y = Math.atan2(-t.x, -t.z);
+          else if (next?.facing === 'front') mii.rotation.y = 0;
+        }
+        emit('phase');
+        enterPhase();
+        return;
+      }
       for (let i = 0; i < actors.length; i++) {
         const actor = actors[i];
         resetNavigation(actor);

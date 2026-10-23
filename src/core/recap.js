@@ -70,15 +70,14 @@ export function createRecap({ stage, crowdRoot }) {
     document.body.classList.add("recap-playing");
     stage.navigation.reset();
 
-    // 1. Everyone walks to a ring around the garden facing outward while the title card is up:
-    //    by the first chapter they're in place, and nobody can stand in front of anyone.
+    // 1. Everyone is placed in a ring around the garden facing outward the moment the show starts
+    //    (the formation snaps, no walking), so nobody can stand in front of anyone. Then the title.
     const emotes = crowdRoot?.userData.groupEmotes;
     const ring = !!emotes?.play("recap-circle", { busy: "replace" });
     stage.navigation.zoomTo(1.15);
     spin(0.0025);
     const intro = card("title", `<small>Manage and More · Monthly recap</small><h1>${esc(title)}</h1><p>what we did</p>`, 3500);
     await intro.done;
-    if (ring) for (let i = 0; i < 44 && emotes.getStatus().phase === "formation" && !skip; i++) await sleep(250); // title stays up until the ring is formed (≤ 11 s more)
     await intro.remove();
 
     // 2. One chapter per member: the camera moves round the outside of the ring to their face

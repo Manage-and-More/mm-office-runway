@@ -6,7 +6,7 @@ export const GROUP_EMOTES = [
     // while the camera visits each person. The recap cancels it before the finale.
     id: 'recap-circle', label: 'Recap circle (hold)',
     phases: [
-      { type: 'formation', formation: 'recap-ring', timeout: 20 },
+      { type: 'formation', formation: 'recap-ring', timeout: 20, snap: true },
       { type: 'motion', motion: 'idle', duration: 900, facing: 'outward' },
       { type: 'release', duration: 0.6 },
     ],
