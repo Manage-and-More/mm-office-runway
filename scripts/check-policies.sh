@@ -76,6 +76,10 @@ check "cannot store a Mii for someone else" "42501" "$(rest "$T_EDITOR" POST ava
 check "cannot store an invalid Mii" "does not match" "$(rest "$T_EDITOR" PATCH 'avatars?id=eq.policy-check' '{"spec":{"id":"policy-check"}}')"
 check "admin can remove someone's Mii" "policy-check" "$(rest "$T_ADMIN" DELETE 'avatars?id=eq.policy-check')"
 check "deletes the payment" "Policy Check" "$(rest "$T_EDITOR" DELETE 'payments?payer_name=eq.Policy%20Check')"
+check "anon cannot read moments" "42501" "$(rest "$ANON" GET 'moments?select=*')"
+check "adds their own moment" '"policy moment"' "$(rest "$T_EDITOR" POST moments '{"owner_email":"'"$EDITOR"'","emoji":"🎓","text":"policy moment"}')"
+check "cannot add a moment for someone else" "42501" "$(rest "$T_EDITOR" POST moments '{"owner_email":"someone.else@'"$DOMAIN"'","text":"nope"}')"
+check "admin can delete someone's moment" "policy moment" "$(rest "$T_ADMIN" DELETE 'moments?text=eq.policy%20moment')"
 
 echo "— admin"
 check "can add an admin" "\"added_by\":\"$ADMIN\"" "$(rest "$T_ADMIN" POST admins '{"email":"New@'"$DOMAIN"'"}')"

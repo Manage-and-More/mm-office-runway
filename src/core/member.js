@@ -19,10 +19,10 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 /**
  * @param {object} config  the site config (config.supabase)
- * @param {{ onPaymentAdded: () => Promise<void>, people?: { setData(map: Map | null): void } }} hooks
- *   onPaymentAdded runs right after a payment lands; people gets the name-tag data (signed in) or null.
+ * @param {{ onPaymentAdded: () => Promise<void>, onMoment?: (miiId: string | null, emoji: string) => void, people?: { setData(map: Map | null): void } }} hooks
+ *   onPaymentAdded runs right after a donation lands; onMoment after a non-money moment; people gets the name-tag data (signed in) or null.
  */
-export function createMemberBar(config, { onPaymentAdded, people }) {
+export function createMemberBar(config, { onPaymentAdded, onMoment, people }) {
   const settings = supabaseSettings(config);
   if (!settings) return;
   const domains = settings.allowedEmailDomains || [];
@@ -61,17 +61,23 @@ export function createMemberBar(config, { onPaymentAdded, people }) {
     if (!people) return;
     if (!email) { people.setData(null); return; }
     const sb = await client();
-    const [{ data: avatars }, { data: payments }] = await Promise.all([
+    const [{ data: avatars }, { data: payments }, { data: moments }] = await Promise.all([
       sb.from("avatars").select("id, spec, owner_email"),
       sb.from("payments").select("donor_id, amount"),
+      sb.from("moments").select("owner_email, emoji, text, happened_on").order("happened_on", { ascending: false }).limit(300),
     ]);
     const map = new Map();
     // Members see who everyone is: the chosen display name, or else the account name (never shown to the public).
     myMii = null;
     for (const a of avatars || []) {
       const name = a.spec?.displayName || a.owner_email.split("@")[0];
-      map.set(a.id, { name, mine: a.owner_email === email, donated: 0, count: 0 });
+      map.set(a.id, { name, mine: a.owner_email === email, donated: 0, count: 0, moments: [] });
       if (a.owner_email === email) myMii = { id: a.id, name };
+    }
+    const byOwner = new Map([...map.entries()].map(([id, info]) => [(avatars || []).find((a) => a.id === id)?.owner_email, info]));
+    for (const m of moments || []) {
+      const info = byOwner.get(m.owner_email);
+      if (info && info.moments.length < 3) info.moments.push(m);
     }
     for (const p of payments || []) {
       const info = p.donor_id && map.get(p.donor_id);
@@ -87,7 +93,7 @@ export function createMemberBar(config, { onPaymentAdded, people }) {
       return;
     }
     bar.append(
-      el("button", { type: "button", class: "member-btn primary", onclick: () => openPayment() }, ["💶 Add payment"]),
+      el("button", { type: "button", class: "member-btn primary", onclick: () => openMoment() }, ["✨ Add a moment"]),
       el("button", { type: "button", class: "member-btn", onclick: () => openMiis() }, ["🧑‍🎨 My Mii"]),
       isAdmin ? el("a", { class: "member-btn", href: "admin/" }, ["🛠 Admin"]) : "",
       el("span", { class: "member-who", title: email }, [email.split("@")[0]]),
@@ -152,47 +158,44 @@ export function createMemberBar(config, { onPaymentAdded, people }) {
     }
   }
 
-  async function openPayment() {
+  const EMOJI = ["🎉", "🎓", "🏃", "🤝", "🎤", "📚", "🛠", "☕", "🌱", "🏆", "✈️", "🎨"];
+  async function openMoment() {
     const sb = await client();
-    const amount = el("input", { type: "number", min: "0.01", step: "0.01", required: true, inputmode: "decimal", autofocus: true });
+    const kind = el("select", {}, [new Option("✨ Something I did", "moment"), new Option("💛 I donated money", "donation")]);
     const date = el("input", { type: "date", required: true, value: today() });
-    const kind = el("select", {}, ["donation", "sponsorship", "other"].map((k) => new Option(k, k)));
-    const payer = el("input", { type: "text", maxlength: 120, placeholder: "name or company" });
-    const donor = el("select", {}, [new Option("none", "")]);
-    const note = el("input", { type: "text", maxlength: 300 });
-    const mineBox = el("input", { type: "checkbox", checked: !!myMii });
-    const others = el("div", { class: "member-grid", hidden: !!myMii }, [
-      el("label", {}, ["Who paid (optional)", payer]), el("label", {}, ["Their Mii (optional)", donor]),
-    ]);
-    mineBox.addEventListener("change", () => { others.hidden = mineBox.checked; });
+    const emoji = el("select", {}, EMOJI.map((e) => new Option(e, e)));
+    const text = el("input", { type: "text", maxlength: 80, placeholder: "e.g. 5 lecture visits", autofocus: true });
+    const amount = el("input", { type: "number", min: "0.01", step: "0.01", inputmode: "decimal" });
+    const momentFields = el("div", { class: "member-grid" }, [el("label", {}, ["Emoji", emoji]), el("label", { class: "wide" }, ["What did you do?", text])]);
+    const donationFields = el("div", { class: "member-grid", hidden: true }, [el("label", {}, ["Amount (€)", amount])]);
+    kind.addEventListener("change", () => { const d = kind.value === "donation"; donationFields.hidden = !d; momentFields.hidden = d; });
     const box = el("p", { class: "member-notice" });
     const form = el("form", { class: "member-form" }, [
-      el("p", { class: "muted" }, ["Payer names stay private; only the total reaches the page."]),
-      el("div", { class: "member-grid" }, [
-        el("label", {}, ["Amount (€)", amount]), el("label", {}, ["Received on", date]), el("label", {}, ["Kind", kind]),
-      ]),
-      el("label", { class: "member-check" }, [mineBox, myMii ? ` This is my own payment (linked to my Mii, ${myMii.name})` : " This is my own payment (create your Mii first to link it)"]),
-      others,
-      el("label", {}, ["Note (optional)", note]),
-      el("div", { class: "member-row" }, [el("button", { type: "submit", class: "member-btn primary" }, ["Add payment 🎉"])]),
+      el("p", { class: "muted" }, [myMii ? `Posted as ${myMii.name}. Only signed-in members see names.` : "Create your Mii first so moments show up on it."]),
+      el("div", { class: "member-grid" }, [el("label", {}, ["Kind", kind]), el("label", {}, ["When", date])]),
+      momentFields, donationFields,
+      el("div", { class: "member-row" }, [el("button", { type: "submit", class: "member-btn primary" }, ["Add 🎉"])]),
       box,
     ]);
-    const d = dialog("Money came in", form);
-    sb.from("avatars").select("id, spec, owner_email").order("owner_email").then(({ data }) => {
-      for (const a of data || []) donor.append(new Option(`${a.spec.displayName || a.owner_email.split("@")[0]}`, a.id));
-    });
+    const d = dialog("Add a moment", form);
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const mine = mineBox.checked;
-      const { error } = await sb.from("payments").insert({
-        amount: Number(amount.value), received_on: date.value, kind: kind.value,
-        payer_name: mine ? (myMii?.name || email.split("@")[0]) : (payer.value.trim() || null),
-        donor_id: mine ? (myMii?.id || null) : (donor.value || null),
-        note: note.value.trim() || null,
-      });
-      if (error) return msg(box, error.message, true);
-      d.close();
-      await onPaymentAdded(); // re-read the runway now: the crowd cheers for real money
+      if (kind.value === "donation") {
+        if (!(Number(amount.value) > 0)) return msg(box, "Enter the amount.", true);
+        const { error } = await sb.from("payments").insert({
+          amount: Number(amount.value), received_on: date.value, kind: "donation",
+          payer_name: myMii?.name || email.split("@")[0], donor_id: myMii?.id || null,
+        });
+        if (error) return msg(box, error.message, true);
+        d.close();
+        await onPaymentAdded(); // the runway re-reads at once: the crowd cheers for real money
+      } else {
+        if (!text.value.trim()) return msg(box, "Say what you did, in a few words.", true);
+        const { error } = await sb.from("moments").insert({ owner_email: email, emoji: emoji.value, text: text.value.trim(), happened_on: date.value });
+        if (error) return msg(box, error.message, true);
+        d.close();
+        onMoment?.(myMii?.id || null, emoji.value);
+      }
       loadPeople();
     });
   }

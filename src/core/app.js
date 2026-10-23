@@ -78,7 +78,23 @@ async function start() {
       crowdRoot?.userData.react?.(id, info?.mine ? party : "wave", reducedMotion ? null : emoji);
     },
   });
-  createMemberBar(config, { onPaymentAdded: () => runway.release(), people });
+  createMemberBar(config, {
+    onPaymentAdded: () => runway.release(),
+    // A moment: the member's Mii dances with the emoji, neighbours cheer, a small sky celebration.
+    onMoment: (miiId, emoji) => {
+      if (miiId) crowdRoot?.userData.react?.(miiId, "dance", reducedMotion ? null : emoji);
+      for (const mii of crowdRoot?.userData.miis?.() ?? []) if (mii.name !== `mii:${miiId}` && Math.random() < 0.6) crowdRoot.userData.react(mii.name.slice(4), "cheer");
+      stage.celebrate(0.5);
+    },
+    people,
+  });
+  // Runway numbers: off by default, remembered per browser.
+  const hudToggle = document.getElementById("hud-toggle");
+  const setHud = (on) => { document.body.classList.toggle("hud-hidden", !on); hudToggle.setAttribute("aria-pressed", String(on)); try { localStorage.setItem("hud", on ? "1" : "0"); } catch { /* fine */ } };
+  let hudOn = false; try { hudOn = localStorage.getItem("hud") === "1"; } catch { /* fine */ }
+  setHud(hudOn);
+  hudToggle.addEventListener("click", () => setHud(document.body.classList.contains("hud-hidden")));
+
   for (const button of document.querySelectorAll(".nav [data-nav]")) {
     button.addEventListener("click", () => {
       const n = stage.navigation;
@@ -86,6 +102,13 @@ async function start() {
     });
   }
   if (debug) addSimulatePanel(runway, active);
+  // PROTOTYPE: ?recap plays the monthly recap show with sample moments (see src/core/recap.js).
+  if (params.has("recap")) {
+    const { createRecap, sampleChapters } = await import("./recap.js");
+    const recap = createRecap({ stage, crowdRoot, monthLabel: new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(new Date()) });
+    const chapters = sampleChapters(avatars);
+    setTimeout(() => recap.play(chapters, { members: chapters.length, moments: chapters.reduce((n, c) => n + c.moments.length, 0), money: "€3,400", runwayBought: "0.5 months" }), 2500);
+  }
 
   const clock = new THREE.Clock();
   stage.renderer.setAnimationLoop(() => {

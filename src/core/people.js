@@ -33,8 +33,10 @@ export function createPeople({ camera, miis, onPick }) {
   });
 
   function label(info, expanded) {
-    if (!expanded) return info.mine ? "⭐ you" : info.donated > 0 ? "💛" : "·";
+    const latest = info.moments?.[0];
+    if (!expanded) return info.mine ? "⭐ you" : latest ? latest.emoji : info.donated > 0 ? "💛" : "·";
     const parts = [info.mine ? `⭐ you${info.name ? ` · ${info.name}` : ""}` : info.name || "member"];
+    for (const m of info.moments || []) parts.push(`${m.emoji} ${m.text}`);
     if (info.donated > 0) parts.push(`💛 ${euro.format(info.donated)} · ${info.count} payment${info.count === 1 ? "" : "s"}`);
     return parts.join("\n");
   }
@@ -48,7 +50,7 @@ export function createPeople({ camera, miis, onPick }) {
       const info = id && data.get(id);
       if (!info) continue;
       const el = document.createElement("span");
-      el.className = "people-tag" + (info.mine ? " me" : "") + (info.donated > 0 ? " donor" : "");
+      el.className = "people-tag" + (info.mine ? " me" : "") + (info.donated > 0 || info.moments?.length ? " donor" : "");
       el.textContent = label(info, false);
       el.hidden = true;
       layer.append(el);

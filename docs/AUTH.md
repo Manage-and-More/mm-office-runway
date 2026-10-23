@@ -83,7 +83,7 @@ the local inbox at http://127.0.0.1:54324, never in a real mailbox.
 
 ## What a login unlocks
 
-- **The runway page itself** (top right): "Sign in", then "Add payment" (the page reacts at once) and "Miis"
+- **The runway page itself** (top right): "Sign in", then "Add a moment" (a highlight, or a donation that moves the runway at once) and "My Mii"
   (the editor in a popup). Signed-in members also see name tags: "you" over their own Mii, a heart over
   Miis that donated, and names plus amounts on hover. Public viewers see plain Miis, no names.
 - `/admin/`: admins only. Every payment, cost and balance with edit and delete, plus the admin list and domains.
