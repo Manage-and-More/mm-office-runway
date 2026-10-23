@@ -72,7 +72,7 @@ export function createRecap({ stage, crowdRoot }) {
     const numbers = card("numbers", `
       <div><b>${totals.members}</b><span>members</span></div>
       <div><b>${totals.moments}</b><span>moments</span></div>
-      <div><b>${esc(totals.money)}</b><span>came in</span></div>
+      <div><b>${esc(totals.money)}</b><span>raised</span></div>
       <div><b>${esc(totals.runwayBought)}</b><span>of runway bought</span></div>`, 5000);
     await numbers.done; await numbers.remove();
 
@@ -107,7 +107,7 @@ export function buildHighlights({ avatars, moments, payments, monthlyCost }) {
   const byId = new Map([...byEmail.values()].map((c) => [c.id, c]));
   for (const m of moments) byEmail.get(m.owner_email)?.moments.push({ emoji: m.emoji, text: m.text });
   let money = 0;
-  for (const p of payments) { money += Number(p.amount); const c = p.donor_id && byId.get(p.donor_id); if (c) c.moments.push({ emoji: "💛", text: `donated ${euro.format(p.amount)}` }); }
+  for (const p of payments) { money += Number(p.amount); const c = p.donor_id && byId.get(p.donor_id); if (c) c.moments.push({ emoji: "💛", text: `raised ${euro.format(p.amount)}` }); }
   const chapters = [...byEmail.values()].filter((c) => c.moments.length).sort((a, b) => a.moments.length - b.moments.length);
   const totals = {
     members: chapters.length,

@@ -160,12 +160,11 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
     }
   }
 
-  const EMOJI = ["🎉", "🎓", "🏃", "🤝", "🎤", "📚", "🛠", "☕", "🌱", "🏆", "✈️", "🎨"];
   async function openMoment() {
     const sb = await client();
-    const kind = el("select", {}, [new Option("✨ Something I did", "moment"), new Option("💛 I donated money", "donation")]);
+    const kind = el("select", {}, [new Option("✨ Moment", "moment"), new Option("💛 Raised money", "donation")]);
     const date = el("input", { type: "date", required: true, value: today() });
-    const emoji = el("select", {}, EMOJI.map((e) => new Option(e, e)));
+    const emoji = el("input", { type: "text", value: "🎉", maxlength: 8, class: "member-emoji", title: "Any emoji" });
     const text = el("input", { type: "text", maxlength: 80, placeholder: "e.g. 5 lecture visits", autofocus: true });
     const amount = el("input", { type: "number", min: "0.01", step: "0.01", inputmode: "decimal" });
     const momentFields = el("div", { class: "member-grid" }, [el("label", {}, ["Emoji", emoji]), el("label", { class: "wide" }, ["What did you do?", text])]);
@@ -211,13 +210,13 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
         if (error) return msg(box, error.message, true);
       } else {
         if (!text.value.trim()) return msg(box, "Say what you did, in a few words.", true);
-        const { error } = await sb.from("moments").insert({ owner_email: target.email, emoji: emoji.value, text: text.value.trim(), happened_on: date.value });
+        const { error } = await sb.from("moments").insert({ owner_email: target.email, emoji: emoji.value.trim() || "🎉", text: text.value.trim(), happened_on: date.value });
         if (error) return msg(box, error.message, true);
       }
       if (target.email !== email) {
         // Added for someone else: offer a one-click invite note, then close.
         const subject = encodeURIComponent("You're on the Manage and More runway page");
-        const body = encodeURIComponent(`Hi!\n\nI just added a moment for you on our runway page: "${kind.value === "donation" ? `donated €${amount.value}` : text.value.trim()}".\n\n${target.created ? "A Mii is waiting for you too. " : ""}Sign in with your MM address and make it yours: ${here}\n\nSee you there!`);
+        const body = encodeURIComponent(`Hi!\n\nI just added a moment for you on our runway page: "${kind.value === "donation" ? `raised €${amount.value}` : text.value.trim()}".\n\n${target.created ? "A Mii is waiting for you too. " : ""}Sign in with your MM address and make it yours: ${here}\n\nSee you there!`);
         form.replaceChildren(
           el("p", {}, [`Added for ${target.email}.${target.created ? " A Mii was created for them; they can restyle it when they sign in." : ""}`]),
           el("div", { class: "member-row" }, [
@@ -225,12 +224,12 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
             el("button", { type: "button", class: "member-btn", onclick: () => d.close() }, ["Done"]),
           ]),
         );
-        if (kind.value === "donation") await onPaymentAdded(); else onMoment?.(target.mii?.id || null, emoji.value);
+        if (kind.value === "donation") await onPaymentAdded(); else onMoment?.(target.mii?.id || null, emoji.value.trim() || "🎉");
         if (target.created) miiChanged = true; // a new figure: the crowd shows it on the next load
       } else {
         d.close();
         if (kind.value === "donation") await onPaymentAdded(); // the runway re-reads at once: the crowd cheers for real money
-        else onMoment?.(myMii?.id || null, emoji.value);
+        else onMoment?.(myMii?.id || null, emoji.value.trim() || "🎉");
       }
       loadPeople();
     });

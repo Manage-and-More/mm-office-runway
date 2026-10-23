@@ -110,3 +110,4 @@ tr.applies td { font-weight: 700; }
 label.inline { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
 label.inline input { width: 120px; }
 .grid-form label[hidden] { display: none; }
+input.emoji { font-size: 1.4rem; text-align: center; }

@@ -152,8 +152,7 @@ async function main(supabase) {
     return td;
   }
 
-  const EMOJI = ["🎉", "🎓", "🏃", "🤝", "🎤", "📚", "🛠", "☕", "🌱", "🏆", "✈️", "🎨"];
-  const KIND_LABEL = { donation: "💛 donation", sponsorship: "🤝 sponsorship", other: "💶 payment" };
+  const KIND_LABEL = { donation: "💛 raised", sponsorship: "💛 raised", other: "💛 raised" };
   let miiNames = new Map(); // avatar id → { name, email }
 
   async function renderMoments() {
@@ -191,9 +190,9 @@ async function main(supabase) {
       $("moment-kind").value = "moment"; $("moment-date").value = r.raw.happened_on; $("moment-email").value = r.raw.owner_email;
       $("moment-emoji").value = r.raw.emoji; $("moment-text").value = r.raw.text;
     } else {
-      $("moment-kind").value = r.raw.donor_id ? "donation" : (r.raw.kind === "sponsorship" ? "sponsorship" : "other");
+      $("moment-kind").value = "money";
       $("moment-date").value = r.raw.received_on; $("moment-amount").value = r.raw.amount; $("moment-note").value = r.raw.note || "";
-      $("moment-email").value = r.raw.donor_id ? (miiNames.get(r.raw.donor_id)?.email || "") : ""; $("moment-payer").value = r.raw.donor_id ? "" : (r.raw.payer_name || "");
+      $("moment-email").value = r.raw.donor_id ? (miiNames.get(r.raw.donor_id)?.email || "") : "";
     }
     showKindFields();
     $("moment-save").textContent = "Save changes"; $("moment-cancel").hidden = false;
@@ -201,7 +200,7 @@ async function main(supabase) {
   }
 
   function resetMomentForm() {
-    $("moment-form").reset(); $("moment-id").value = ""; $("moment-table").value = ""; $("moment-date").value = today();
+    $("moment-form").reset(); $("moment-id").value = ""; $("moment-table").value = ""; $("moment-date").value = today(); $("moment-emoji").value = "🎉";
     showKindFields();
     $("moment-save").textContent = "Add moment"; $("moment-cancel").hidden = true;
   }
@@ -223,7 +222,6 @@ async function main(supabase) {
   }
 
   function bindDataForms() {
-    $("moment-emoji").replaceChildren(...EMOJI.map((e) => new Option(e, e)));
     resetMomentForm();
     $("moment-kind").addEventListener("change", showKindFields);
     $("moment-cancel").addEventListener("click", resetMomentForm);
@@ -239,20 +237,17 @@ async function main(supabase) {
           if (!emailFor.includes("@")) throw new Error("Enter the member's MM address.");
           if (!$("moment-text").value.trim()) throw new Error("Say what they did, in a few words.");
           await ensureMii(supabase, emailFor, "../src/contracts/avatar.schema.json");
-          const row = { owner_email: emailFor, emoji: $("moment-emoji").value, text: $("moment-text").value.trim(), happened_on: date };
+          const row = { owner_email: emailFor, emoji: $("moment-emoji").value.trim() || "🎉", text: $("moment-text").value.trim(), happened_on: date };
           const { error } = id && table === "moments" ? await supabase.from("moments").update(row).eq("id", id) : await supabase.from("moments").insert(row);
           if (error) throw error;
           if (id && table === "payments") await supabase.from("payments").delete().eq("id", id); // kind changed: move it over
         } else {
+          // Raised money: credited to the member who brought it in; the note says where it came from.
           const amount = Number($("moment-amount").value);
           if (!(amount > 0)) throw new Error("Enter the amount.");
-          let donor_id = null, payer_name = $("moment-payer").value.trim() || null;
-          if (kind === "donation") {
-            if (!emailFor.includes("@")) throw new Error("Enter the member's MM address.");
-            const mii = await ensureMii(supabase, emailFor, "../src/contracts/avatar.schema.json");
-            donor_id = mii.id; payer_name = mii.name;
-          }
-          const row = { amount, received_on: date, kind, payer_name, donor_id, note: $("moment-note").value.trim() || null };
+          if (!emailFor.includes("@")) throw new Error("Enter the member's MM address.");
+          const mii = await ensureMii(supabase, emailFor, "../src/contracts/avatar.schema.json");
+          const row = { amount, received_on: date, kind: "donation", payer_name: mii.name, donor_id: mii.id, note: $("moment-note").value.trim() || null };
           const { error } = id && table === "payments" ? await supabase.from("payments").update(row).eq("id", id) : await supabase.from("payments").insert(row);
           if (error) throw error;
           if (id && table === "moments") await supabase.from("moments").delete().eq("id", id);
