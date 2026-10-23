@@ -2,6 +2,7 @@
 // Mii editor in a popup. Everyone signed in with an MM account is an editor; the admin page (/admin/)
 // stays admins-only. supabase-js loads lazily, so public viewers never download it.
 import { supabaseSettings } from "./supabase.js";
+import { ensureMii } from "./mii-spec.js";
 
 const el = (tag, attrs = {}, children = []) => {
   const node = document.createElement(tag);
@@ -109,7 +110,7 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
       el("div", { class: "member-dialog-head" }, [el("h2", {}, [title]), el("button", { type: "button", class: "member-btn quiet", onclick: () => d.close() }, ["✕"])]),
       body,
     ]);
-    d.addEventListener("close", () => d.remove());
+    d.addEventListener("close", () => { d.remove(); if (miiChanged && !document.querySelector("iframe.member-frame")) { miiChanged = false; location.reload(); } });
     document.body.append(d);
     d.showModal();
     return d;
@@ -170,10 +171,20 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
     const momentFields = el("div", { class: "member-grid" }, [el("label", {}, ["Emoji", emoji]), el("label", { class: "wide" }, ["What did you do?", text])]);
     const donationFields = el("div", { class: "member-grid", hidden: true }, [el("label", {}, ["Amount (€)", amount])]);
     kind.addEventListener("change", () => { const d = kind.value === "donation"; donationFields.hidden = !d; momentFields.hidden = d; });
+    // Admins can add a moment for another member, by MM address. If that person has no Mii yet,
+    // one is created for them (random look, no name, unclaimed) so the moment has a figure.
+    const who = el("select", {}, [new Option("me", "me"), new Option("someone else (MM address)", "other")]);
+    const otherEmail = el("input", { type: "email", placeholder: domains[0] ? `first.last@${domains[0]}` : "email" });
+    const otherField = el("label", { hidden: true }, ["Their MM address", otherEmail]);
+    who.addEventListener("change", () => { otherField.hidden = who.value !== "other"; if (!otherField.hidden) otherEmail.focus(); });
     const box = el("p", { class: "member-notice" });
     const form = el("form", { class: "member-form" }, [
       el("p", { class: "muted" }, [myMii ? `Posted as ${myMii.name}. Only signed-in members see names.` : "Create your Mii first so moments show up on it."]),
-      el("div", { class: "member-grid" }, [el("label", {}, ["Kind", kind]), el("label", {}, ["When", date])]),
+      el("div", { class: "member-grid" }, [
+        isAdmin ? el("label", {}, ["For", who]) : "",
+        isAdmin ? otherField : "",
+        el("label", {}, ["Kind", kind]), el("label", {}, ["When", date]),
+      ]),
       momentFields, donationFields,
       el("div", { class: "member-row" }, [el("button", { type: "submit", class: "member-btn primary" }, ["Add 🎉"])]),
       box,
@@ -181,24 +192,49 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
     const d = dialog("Add a moment", form);
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      // Whose moment is it?
+      let target = { email, mii: myMii, created: false };
+      if (isAdmin && who.value === "other") {
+        const other = otherEmail.value.trim().toLowerCase();
+        if (!domainOkFor(other)) return msg(box, `Enter a ${domains.map((x) => "@" + x).join(" or ")} address.`, true);
+        try {
+          const found = await ensureMii(sb, other, "src/contracts/avatar.schema.json");
+          target = { email: other, mii: { id: found.id, name: found.name }, created: found.created };
+        } catch (err) { return msg(box, err.message, true); }
+      }
       if (kind.value === "donation") {
         if (!(Number(amount.value) > 0)) return msg(box, "Enter the amount.", true);
         const { error } = await sb.from("payments").insert({
           amount: Number(amount.value), received_on: date.value, kind: "donation",
-          payer_name: myMii?.name || email.split("@")[0], donor_id: myMii?.id || null,
+          payer_name: target.mii?.name || target.email.split("@")[0], donor_id: target.mii?.id || null,
         });
         if (error) return msg(box, error.message, true);
-        d.close();
-        await onPaymentAdded(); // the runway re-reads at once: the crowd cheers for real money
       } else {
         if (!text.value.trim()) return msg(box, "Say what you did, in a few words.", true);
-        const { error } = await sb.from("moments").insert({ owner_email: email, emoji: emoji.value, text: text.value.trim(), happened_on: date.value });
+        const { error } = await sb.from("moments").insert({ owner_email: target.email, emoji: emoji.value, text: text.value.trim(), happened_on: date.value });
         if (error) return msg(box, error.message, true);
+      }
+      if (target.email !== email) {
+        // Added for someone else: offer a one-click invite note, then close.
+        const subject = encodeURIComponent("You're on the Manage and More runway page");
+        const body = encodeURIComponent(`Hi!\n\nI just added a moment for you on our runway page: "${kind.value === "donation" ? `donated €${amount.value}` : text.value.trim()}".\n\n${target.created ? "A Mii is waiting for you too. " : ""}Sign in with your MM address and make it yours: ${here}\n\nSee you there!`);
+        form.replaceChildren(
+          el("p", {}, [`Added for ${target.email}.${target.created ? " A Mii was created for them; they can restyle it when they sign in." : ""}`]),
+          el("div", { class: "member-row" }, [
+            el("a", { class: "member-btn primary", href: `mailto:${target.email}?subject=${subject}&body=${body}` }, ["✉️ Send them a note"]),
+            el("button", { type: "button", class: "member-btn", onclick: () => d.close() }, ["Done"]),
+          ]),
+        );
+        if (kind.value === "donation") await onPaymentAdded(); else onMoment?.(target.mii?.id || null, emoji.value);
+        if (target.created) miiChanged = true; // a new figure: the crowd shows it on the next load
+      } else {
         d.close();
-        onMoment?.(myMii?.id || null, emoji.value);
+        if (kind.value === "donation") await onPaymentAdded(); // the runway re-reads at once: the crowd cheers for real money
+        else onMoment?.(myMii?.id || null, emoji.value);
       }
       loadPeople();
     });
+    const domainOkFor = (addr) => { const dom = addr.split("@")[1] || ""; return addr.includes("@") && (!domains.length || domains.includes(dom)); };
   }
 
   // ───────────────────────────── highlights: one month as a show ─────────────────────────────

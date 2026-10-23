@@ -10,8 +10,8 @@ views with the anon key; editors change the underlying tables on `/admin/` (see 
 | `monthly_costs` | Cost per month with an `effective_from` date; the latest row ≤ today applies | editors | editors |
 | `opening_balances` | Bank balance at a date, recorded when reconciling | editors | editors |
 | `payments` | Every incoming payment: amount, date, kind (donation / sponsorship / other), payer name, optional link to a Mii, note | editors | editors |
-| `avatars` | One Mii per MM account: the `AvatarSpec` as JSON plus the `owner_email` it belongs to (unique) | editors | the owner, or admins |
-| `moments` | Members' highlights ("5 lecture visits"): emoji, one line of text, date. Never public | editors | the owner (delete: owner or admins) |
+| `avatars` | One Mii per MM account: the `AvatarSpec` as JSON plus the `owner_email` it belongs to (unique). `claimed` is false while an admin-created Mii waits for its owner | editors | the owner, or admins |
+| `moments` | Members' highlights ("5 lecture visits"): emoji, one line of text, date. Never public | editors | the owner, or admins for anyone (delete: owner or admins) |
 | `avatar_schema` | The `AvatarSpec` JSON schema, so the database validates what the crowd renders | everyone | migrations only |
 
 "Editors" means anyone signed in with a Manage and More account (see [AUTH.md](AUTH.md)).

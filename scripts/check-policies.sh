@@ -80,6 +80,12 @@ check "anon cannot read moments" "42501" "$(rest "$ANON" GET 'moments?select=*')
 check "adds their own moment" '"policy moment"' "$(rest "$T_EDITOR" POST moments '{"owner_email":"'"$EDITOR"'","emoji":"🎓","text":"policy moment"}')"
 check "cannot add a moment for someone else" "42501" "$(rest "$T_EDITOR" POST moments '{"owner_email":"someone.else@'"$DOMAIN"'","text":"nope"}')"
 check "admin can delete someone's moment" "policy moment" "$(rest "$T_ADMIN" DELETE 'moments?text=eq.policy%20moment')"
+check "admin adds a moment for someone else" '"for someone"' "$(rest "$T_ADMIN" POST moments '{"owner_email":"someone.else@'"$DOMAIN"'","emoji":"🎉","text":"for someone"}')"
+check "admin edits someone else's moment" '"for someone, edited"' "$(rest "$T_ADMIN" PATCH "moments?owner_email=eq.someone.else@$DOMAIN" '{"text":"for someone, edited"}')"
+check "editor cannot edit someone else's moment" "[]" "$(rest "$T_EDITOR" PATCH "moments?owner_email=eq.someone.else@$DOMAIN" '{"text":"hijack"}')"
+check "nobody can add a moment for an outside address" "Only Manage and More" "$(rest "$T_ADMIN" POST moments '{"owner_email":"ghost@gmail.com","text":"nope"}')"
+check "admin creates an unclaimed Mii for someone else" '"claimed":false' "$(rest "$T_ADMIN" POST avatars "$(spec_for policy-someone "someone.else@$DOMAIN" | python3 -c 'import json,sys; d=json.load(sys.stdin); d["claimed"]=False; print(json.dumps(d))')")"
+rest "$T_ADMIN" DELETE "moments?owner_email=eq.someone.else@$DOMAIN" >/dev/null; rest "$T_ADMIN" DELETE 'avatars?id=eq.policy-someone' >/dev/null
 
 echo "— admin"
 check "can add an admin" "\"added_by\":\"$ADMIN\"" "$(rest "$T_ADMIN" POST admins '{"email":"New@'"$DOMAIN"'"}')"

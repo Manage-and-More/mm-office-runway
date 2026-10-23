@@ -83,26 +83,35 @@
       <p class="muted small">funds = latest opening balance + payments entered after it − months elapsed × monthly cost. The public page re-reads this every minute.</p>
       <p><a class="button" href="../tools/avatar-maker/">🧑‍🎨 My Mii</a></p>
 
-      <h3>Payments in</h3>
-      <p class="muted">Every donation, sponsorship or partner payment. Payer names never reach the public page.</p>
-      <form id="payment-form" class="grid-form">
-        <input type="hidden" id="payment-id">
-        <label>Amount (€) <input type="number" id="payment-amount" min="0.01" step="0.01" required></label>
-        <label>Received on <input type="date" id="payment-date" required></label>
-        <label>Kind <select id="payment-kind"><option value="donation">donation</option><option value="sponsorship">sponsorship</option><option value="other">other</option></select></label>
-        <label>Who paid (optional) <input type="text" id="payment-payer" maxlength="120" placeholder="name or company"></label>
-        <label>Their Mii (optional) <select id="payment-donor"><option value="">none</option></select></label>
-        <label class="wide">Note (optional) <input type="text" id="payment-note" maxlength="300"></label>
+      <h3>Moments</h3>
+      <p class="muted">Everything worth celebrating: members' moments, their donations, and sponsor or partner money. Names never reach the public page.</p>
+      <form id="moment-form" class="grid-form">
+        <input type="hidden" id="moment-id"><input type="hidden" id="moment-table">
+        <label>Kind
+          <select id="moment-kind">
+            <option value="moment">✨ Moment (something someone did)</option>
+            <option value="donation">💛 Donation from a member</option>
+            <option value="sponsorship">🤝 Sponsorship / partner money</option>
+            <option value="other">💶 Other payment</option>
+          </select>
+        </label>
+        <label>When <input type="date" id="moment-date" required></label>
+        <label data-for="moment donation">Member (MM address) <input type="email" id="moment-email" placeholder="first.last@manageandmore.de"></label>
+        <label data-for="sponsorship other">Who paid <input type="text" id="moment-payer" maxlength="120" placeholder="company or name"></label>
+        <label data-for="moment">Emoji <select id="moment-emoji"></select></label>
+        <label data-for="moment" class="wide">What did they do? <input type="text" id="moment-text" maxlength="80" placeholder="e.g. 5 lecture visits"></label>
+        <label data-for="donation sponsorship other">Amount (€) <input type="number" id="moment-amount" min="0.01" step="0.01"></label>
+        <label data-for="donation sponsorship other" class="wide">Note (optional) <input type="text" id="moment-note" maxlength="300"></label>
         <div class="row wide">
-          <button type="submit" class="primary" id="payment-save">Add payment</button>
-          <button type="button" id="payment-cancel" hidden>Cancel</button>
+          <button type="submit" class="primary" id="moment-save">Add moment</button>
+          <button type="button" id="moment-cancel" hidden>Cancel</button>
         </div>
       </form>
-      <div class="table-wrap"><table class="editors" id="payments-table">
-        <thead><tr><th>Date</th><th>Amount</th><th>Kind</th><th>Who</th><th>Note</th><th>By</th><th></th></tr></thead>
-        <tbody id="payments-rows"></tbody>
+      <div class="table-wrap"><table class="editors" id="moments-table">
+        <thead><tr><th>Date</th><th>What</th><th>Who</th><th>By</th><th></th></tr></thead>
+        <tbody id="moments-rows"></tbody>
       </table></div>
-      <p class="error" id="payments-error" role="alert"></p>
+      <p class="error" id="moments-error" role="alert"></p>
 
       <h3>Monthly cost</h3>
       <form id="cost-form" class="row">
