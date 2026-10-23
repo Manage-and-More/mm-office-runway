@@ -87,7 +87,8 @@ export default function createCrowd({ root, avatars = [], events, reducedMotion,
     root.userData.react = (id, action = 'wave', emoji = null) => {
       const resident = residents.find(r => r.mii.name === `mii:${id}`);
       if (!resident || resident.away) return false;
-      resident.reaction = { at: now, action, cycles: action === 'dance' ? 2 : 1 };
+      if (director.active) director.solo(resident, action, action === 'dance' ? 3 : 1.6); // inside a group emote
+      else resident.reaction = { at: now, action, cycles: action === 'dance' ? 2 : 1 };
       if (emoji) bubbles.show(resident, emoji, 2.2);
       return true;
     };

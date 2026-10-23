@@ -11,6 +11,7 @@ export function createGroupDirector(residents, { reducedMotion = false, navigati
   const queue = [];
   const status = { emote: '', phase: 'standard', progress: 0, queued: 0, lastResult: '' };
   let active = null, phaseIndex = -1, elapsed = 0, duration = 0, cueSent = new Set(), disposed = false, revision = 0;
+  const overrides = new Map(); // resident → { motion, start, until }
   const emit = (type, extra = {}) => {
     try { onEvent({ type, id: active?.id ?? '', phase: phaseIndex, ...extra }); }
     catch (error) { console.error('Group-emote event handler failed:', error); }
@@ -36,6 +37,20 @@ export function createGroupDirector(residents, { reducedMotion = false, navigati
     if (phase.type === 'formation' && !reducedMotion) {
       const slots = formations[phase.formation](actors.length);
       const targets = assignSlots(residents.map(resident => resident.mii.position), slots);
+      if (phase.snap) {
+        // Everyone is placed at once (a show that must start in formation), facing as the next phase asks.
+        for (let i = 0; i < actors.length; i++) {
+          const mii = actors[i].resident.mii, t = targets[i];
+          mii.position.set(t.x, 0, t.z);
+          const next = active.phases[phaseIndex + 1];
+          if (next?.facing === 'outward') mii.rotation.y = Math.atan2(t.x, t.z);
+          else if (next?.facing === 'center') mii.rotation.y = Math.atan2(-t.x, -t.z);
+          else if (next?.facing === 'front') mii.rotation.y = 0;
+        }
+        emit('phase');
+        enterPhase();
+        return;
+      }
       for (let i = 0; i < actors.length; i++) {
         const actor = actors[i];
         resetNavigation(actor);
@@ -70,6 +85,8 @@ export function createGroupDirector(residents, { reducedMotion = false, navigati
       start(id); return true;
     },
     cancel() { queue.length = 0; status.queued = 0; if (active) finish('cancelled'); },
+    /** Let one resident play a motion for a few seconds inside the group choreography. */
+    solo(resident, motion, seconds = 2.5) { if (!active) return false; overrides.set(resident, { motion, start: elapsed, until: elapsed + seconds }); return true; },
     update(dt) {
       if (disposed) return false;
       if (!active && queue.length) { const next = queue.shift(); status.queued = queue.length; start(next); }
@@ -95,9 +112,14 @@ export function createGroupDirector(residents, { reducedMotion = false, navigati
           clock = Math.max(0, local) * (phase.speed ?? 1);
           if (!reducedMotion && phase.facing && phase.facing !== 'keep') {
             const p = actor.resident.mii.position;
-            turnToward(actor.resident.mii, phase.facing === 'front' ? 0 : Math.atan2(-p.x, -p.z), step);
+            const facing = phase.facing === 'front' ? 0 : phase.facing === 'outward' ? Math.atan2(p.x, p.z) : Math.atan2(-p.x, -p.z);
+            turnToward(actor.resident.mii, facing, step);
           }
         }
+        // A solo override (someone clicked or the recap spotlights them) plays over the group motion.
+        const solo = overrides.get(actor.resident);
+        if (solo && elapsed < solo.until && !reducedMotion) { motion = solo.motion; clock = (elapsed - solo.start) * 1; participation = 1; }
+        else if (solo) overrides.delete(actor.resident);
         if (reducedMotion) { motion = 'idle'; clock = elapsed * 0.3; }
         sampleMotion(motion, clock, actor.targetPose);
         if (phase.type === 'motion' && !reducedMotion) {

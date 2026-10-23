@@ -68,7 +68,7 @@ body {
 .hud {
   position: fixed;
   inset: 0 0 auto;
-  padding: 20px 16px;
+  padding: 76px 16px 20px; /* below the Runway toggle and the member bar */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -253,6 +253,7 @@ body[data-mood="panic"] .chip.edge i { animation-duration: 0.6s; }
 
 @media (max-width: 850px) {
   .title { letter-spacing: .12em; }
+  .hud { padding-top: 20px; } /* the bars sit at the bottom on phones */
 }
 
 /* Member bar: sign in, add a payment, open the Mii editor. */
@@ -308,6 +309,8 @@ body[data-mood="panic"] .chip.edge i { animation-duration: 0.6s; }
 .member-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; font-weight: 700; }
 .member-form input, .member-form select { font: inherit; padding: 0.5em 0.8em; border-radius: 10px; border: 1.5px solid rgb(35 41 92 / 0.25); background: #fff; color: var(--ink); }
 .member-grid { display: grid; gap: 10px 12px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.member-grid .wide { grid-column: 1 / -1; }
+.member-dialog [hidden] { display: none !important; }
 .member-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .member-check { flex-direction: row !important; align-items: center; gap: 8px; }
 .member-notice { font-weight: 700; min-height: 1.2em; }
@@ -543,3 +546,35 @@ body[data-mood="panic"] .chip.edge i { animation-duration: 0.6s; }
 .people-tag.me { background: var(--ink); color: #fff; border-color: var(--ink); }
 .people-tag.hover { opacity: 1; padding: 6px 10px; font-size: 13px; box-shadow: 0 4px 14px rgb(35 41 92 / 0.25); z-index: 1; }
 .people-tag:not(.me):not(.donor):not(.hover) { opacity: 0.35; }
+
+/* Highlights show overlay (src/core/recap.js) */
+.recap { position: fixed; inset: 0; pointer-events: none; z-index: 4; display: grid; place-items: end center; padding-bottom: 8vh; }
+.recap[hidden] { display: none; }
+.recap-skip { position: fixed; top: 20px; right: 20px; pointer-events: auto; }
+.recap-sound { position: fixed; top: 20px; right: 110px; pointer-events: auto; }
+body.recap-playing .hud, body.recap-playing .member-bar, body.recap-playing .nav, body.recap-playing .people, body.recap-playing .hud-toggle { opacity: 0; transition: opacity 0.6s; }
+.recap-card { pointer-events: auto; opacity: 0; transform: translateY(16px) scale(0.98); transition: opacity 0.5s, transform 0.5s; color: var(--ink); font-family: var(--font-body); text-align: center; }
+.recap-card.in { opacity: 1; transform: none; }
+.recap-card.title { place-self: center; padding: 28px 44px; border-radius: 28px; background: #ffffffe6; box-shadow: 0 12px 40px rgb(35 41 92 / 0.25); }
+.recap-card.title small { font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.recap-card.title h1 { font-family: var(--font-display); font-size: clamp(2rem, 6vw, 3.6rem); font-weight: 700; margin: 0.1em 0; }
+.recap-card.title p { color: var(--muted); font-weight: 700; margin-bottom: 0.6em; }
+.recap-card.chapter { min-width: min(92vw, 420px); padding: 18px 26px; border-radius: 22px; background: #ffffffe6; box-shadow: 0 10px 30px rgb(35 41 92 / 0.22); text-align: left; }
+.recap-card.chapter .who { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+.recap-card.chapter ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.recap-card.chapter li { display: flex; align-items: center; gap: 10px; font-weight: 700; opacity: 0; transform: translateX(-10px); transition: opacity 0.4s, transform 0.4s; }
+.recap-card.chapter li.in { opacity: 1; transform: none; }
+.recap-card.chapter li span { font-size: 1.4rem; width: 1.6em; text-align: center; }
+.recap-card.numbers { place-self: center; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; padding: 24px 32px; border-radius: 28px; background: #ffffffe6; box-shadow: 0 12px 40px rgb(35 41 92 / 0.25); width: min(92vw, 720px); }
+.recap-card.numbers b { display: block; font-family: var(--font-display); font-size: clamp(1.8rem, 5vw, 3rem); font-weight: 700; color: var(--accent); -webkit-text-stroke: 0.02em var(--ink); }
+.recap-card.numbers span { font-weight: 700; color: var(--muted); }
+
+/* The runway numbers are a layer you switch on; the garden and the people are the page. */
+.hud-toggle {
+  position: fixed; top: 20px; left: 20px; z-index: 3;
+  font: 700 14px var(--font-body); color: var(--ink); background: #ffffffd9; border: 1px solid #d5dce5; border-radius: 8px; padding: 10px 15px; cursor: pointer;
+}
+.hud-toggle:hover, .hud-toggle:focus-visible { border-color: var(--accent); }
+.hud-toggle[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+body.hud-hidden .hud { display: none; }
+@media (max-width: 850px) { .hud-toggle { top: auto; bottom: 64px; left: 16px; font-size: 12px; } }

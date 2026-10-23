@@ -109,3 +109,4 @@ tr.applies td { font-weight: 700; }
 .editors td.by { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
 label.inline { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
 label.inline input { width: 120px; }
+.grid-form label[hidden] { display: none; }

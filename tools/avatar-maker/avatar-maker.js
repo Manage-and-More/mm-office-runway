@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import { buildMii } from "../../src/crowd/mii.js";
 import { config } from "../../config.js";
 import { supabaseSettings } from "../../src/core/supabase.js";
+import { idFromEmail, randomLook } from "../../src/core/mii-spec.js";
 
 const $ = (id) => document.getElementById(id);
 const views = [...document.querySelectorAll("[data-view]")];
@@ -19,10 +20,6 @@ const LABELS = { head: "Head", hair: "Hair", eyes: "Eyes", shape: "Shape", skinT
 const embedded = new URLSearchParams(location.search).has("embed");
 if (embedded) document.body.classList.add("embedded");
 const notifyParent = () => { if (embedded) parent.postMessage({ type: "mii-changed" }, location.origin); };
-
-/** Mii id from the account: arnav.singh@… → arnav-singh. Stable, unique per person. */
-const today = () => new Date().toISOString().slice(0, 10);
-const idFromEmail = (email) => email.split("@")[0].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "member";
 
 const settings = supabaseSettings(config);
 if (!settings) show("unconfigured");
@@ -43,10 +40,15 @@ async function main(supabase) {
   form.onChange(() => { clearMessages(); preview.render(form.read()); });
 
   async function loadMine() {
-    const { data, error } = await supabase.from("avatars").select("id, spec").eq("owner_email", email).maybeSingle();
+    const { data, error } = await supabase.from("avatars").select("id, spec, claimed").eq("owner_email", email).maybeSingle();
     if (error) return fail(error.message);
     mine = data;
-    if (mine) {
+    if (mine && mine.claimed === false) {
+      $("form-title").textContent = "A Mii is waiting for you";
+      $("form-hint").textContent = "An admin added a highlight for you and created this Mii with a random look. Make it yours and save, or remove it.";
+      $("delete").hidden = false;
+      form.write(mine.spec);
+    } else if (mine) {
       $("form-title").textContent = "Your Mii";
       $("form-hint").textContent = "This is you on the runway page. Change anything and save.";
       $("delete").hidden = false;
@@ -55,14 +57,14 @@ async function main(supabase) {
       $("form-title").textContent = "Create your Mii";
       $("form-hint").textContent = "You don't have a Mii yet. Pick a look (or roll a random one) and save.";
       $("delete").hidden = true;
-      form.write(randomSpec(schema));
+      form.write(randomLook(schema));
     }
     preview.render(form.read());
   }
 
   $("random").addEventListener("click", () => {
     const keep = form.read();
-    form.write({ ...randomSpec(schema), displayName: keep.displayName });
+    form.write({ ...randomLook(schema), displayName: keep.displayName });
     preview.render(form.read());
   });
 
@@ -71,7 +73,7 @@ async function main(supabase) {
     clearMessages();
     // Saving is the consent (the disclaimer under the buttons says so); removing the Mii withdraws it.
     const spec = { ...form.read(), id: mine?.id || idFromEmail(email), consent: { public: true, givenOn: mine?.spec?.consent?.givenOn || today() } };
-    const { error } = await supabase.from("avatars").upsert({ id: spec.id, spec, owner_email: email }, { onConflict: "id" });
+    const { error } = await supabase.from("avatars").upsert({ id: spec.id, spec, owner_email: email, claimed: true }, { onConflict: "id" });
     if (error) return fail(error.message);
     await loadMine();
     notifyParent();
@@ -170,23 +172,6 @@ function createForm(schema) {
         input.dispatchEvent(new Event("input", { bubbles: false }));
       }
     },
-  };
-}
-
-function randomSpec(schema) {
-  const p = schema.properties;
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-  const skin = ["#f8d9c4", "#f1c7a3", "#e0ac7e", "#c89572", "#a9714b", "#8d5a3b", "#5c3a21"];
-  const hair = ["#1b1b1b", "#2e1b10", "#6b3e26", "#a65e2e", "#d9a066", "#e8d7a7", "#8c8c8c", "#c8102e"];
-  const shirts = ["#00a2cc", "#ff4fd8", "#7cffcb", "#ffd166", "#ef476f", "#118ab2", "#06d6a0", "#8338ec"];
-  const eyes = ["#2b1d14", "#3b5b7a", "#4a3222", "#2f6b3a", "#5a7d9a"];
-  return {
-    head: { shape: pick(p.head.properties.shape.enum), skinTone: pick(skin) },
-    hair: { style: pick(p.hair.properties.style.enum), color: pick(hair) },
-    eyes: { style: pick(p.eyes.properties.style.enum), color: pick(eyes) },
-    eyebrows: pick(p.eyebrows.enum), nose: pick(p.nose.enum), mouth: pick(p.mouth.enum),
-    glasses: pick(p.glasses.enum), facialHair: pick(p.facialHair.enum), shirtColor: pick(shirts),
-    height: Math.round((0.85 + Math.random() * 0.3) * 100) / 100,
   };
 }
 

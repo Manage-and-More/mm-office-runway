@@ -13,7 +13,7 @@ export function createRegistry(definitions, formations = FORMATIONS) {
       if (phase.type === 'motion' && !motions.has(phase.motion)) throw new Error('Unknown motion');
       if (phase.speed !== undefined && !positive(phase.speed)) throw new Error('Invalid playback speed');
       if (phase.stagger !== undefined && (!Number.isFinite(phase.stagger) || phase.stagger < 0)) throw new Error('Invalid stagger');
-      if (phase.facing && !['center', 'front', 'keep'].includes(phase.facing)) throw new Error('Invalid facing');
+      if (phase.facing && !['center', 'front', 'outward', 'keep'].includes(phase.facing)) throw new Error('Invalid facing');
       for (const cue of phase.cues ?? []) {
         if (!Number.isFinite(cue.at) || cue.at < 0 || cue.at > (phase.duration ?? phase.timeout) || typeof cue.name !== 'string' || !cue.name) throw new Error('Invalid phase cue');
       }

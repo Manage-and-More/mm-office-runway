@@ -83,7 +83,7 @@ the local inbox at http://127.0.0.1:54324, never in a real mailbox.
 
 ## What a login unlocks
 
-- **The runway page itself** (top right): "Sign in", then "Add payment" (the page reacts at once) and "Miis"
+- **The runway page itself** (top right): "Sign in", then "Add a highlight" (a highlight, or a donation that moves the runway at once), "My Mii" and "Recap" (one month's highlights as a one-minute show)
   (the editor in a popup). Signed-in members also see name tags: "you" over their own Mii, a heart over
   Miis that donated, and names plus amounts on hover. Public viewers see plain Miis, no names.
 - `/admin/`: admins only. Every payment, cost and balance with edit and delete, plus the admin list and domains.
@@ -91,7 +91,11 @@ the local inbox at http://127.0.0.1:54324, never in a real mailbox.
 
 ## Managing access
 
-- **New editor:** nothing to do. They create their own account on `/admin/` with their MM address and confirm the email.
+- **New editor:** nothing to do. They create their own account on the runway page with their MM address and confirm the email.
+- **Someone without an account yet:** an admin can add a highlight or raised money "for someone else" by MM address. A Mii
+  is created for them (random look, no name, unclaimed) and the popup offers a one-click invite note. When they
+  sign up with that address, the Mii and the moments are theirs; the editor says so and lets them restyle or remove it.
+  Identity is the email, one Mii per email, so nothing is duplicated.
 - **New admin:** an admin enters their email on `/admin/` → "Make admin". Works before their first sign-in.
 - **Remove an admin:** same page. An admin cannot remove themself, so the list can't become empty.
 - **Someone leaves MM:** delete their account in Supabase → Authentication → Users (their session expires within an hour anyway),

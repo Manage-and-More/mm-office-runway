@@ -78,15 +78,42 @@ async function start() {
       crowdRoot?.userData.react?.(id, info?.mine ? party : "wave", reducedMotion ? null : emoji);
     },
   });
-  createMemberBar(config, { onPaymentAdded: () => runway.release(), people });
+  // Highlights: one calendar month as a one-minute show (src/core/recap.js), from the bar or ?recap.
+  let recap = null;
+  const playHighlights = async (data, label) => {
+    const mod = await import("./recap.js");
+    recap ??= mod.createRecap({ stage, crowdRoot });
+    const { chapters, totals } = mod.buildHighlights(data);
+    if (!chapters.length) return false;
+    recap.play(chapters, totals, label);
+    return true;
+  };
+  createMemberBar(config, {
+    playHighlights,
+    autoplayHighlights: params.has("recap"),
+    onPaymentAdded: () => runway.release(),
+    // A moment: the member's Mii dances with the emoji, neighbours cheer, a small sky celebration.
+    onMoment: (miiId, emoji) => {
+      if (miiId) crowdRoot?.userData.react?.(miiId, "dance", reducedMotion ? null : emoji);
+      for (const mii of crowdRoot?.userData.miis?.() ?? []) if (mii.name !== `mii:${miiId}` && Math.random() < 0.6) crowdRoot.userData.react(mii.name.slice(4), "cheer");
+      stage.celebrate(0.5);
+    },
+    people,
+  });
+  // Runway numbers: off by default, remembered per browser.
+  const hudToggle = document.getElementById("hud-toggle");
+  const setHud = (on) => { document.body.classList.toggle("hud-hidden", !on); hudToggle.setAttribute("aria-pressed", String(on)); try { localStorage.setItem("hud", on ? "1" : "0"); } catch { /* fine */ } };
+  let hudOn = false; try { hudOn = localStorage.getItem("hud") === "1"; } catch { /* fine */ }
+  setHud(hudOn);
+  hudToggle.addEventListener("click", () => setHud(document.body.classList.contains("hud-hidden")));
+
   for (const button of document.querySelectorAll(".nav [data-nav]")) {
     button.addEventListener("click", () => {
       const n = stage.navigation;
       ({ left: () => n.rotate(-Math.PI / 8), right: () => n.rotate(Math.PI / 8), in: () => n.zoom(0.8), out: () => n.zoom(1.25), reset: () => n.reset() })[button.dataset.nav]();
     });
   }
-  if (debug) addSimulatePanel(runway, active);
-
+  if (debug) { addSimulatePanel(runway, active); window.__runway = { stage, crowdRoot }; } // dev handle for the console
   const clock = new THREE.Clock();
   stage.renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.1);

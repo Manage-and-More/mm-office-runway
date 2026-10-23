@@ -4,6 +4,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { config } from "../config.js";
 import { supabaseSettings } from "../src/core/supabase.js";
+import { ensureMii } from "../src/core/mii-spec.js";
 
 const $ = (id) => document.getElementById(id);
 const views = [...document.querySelectorAll("[data-view]")];
@@ -130,7 +131,7 @@ async function main(supabase) {
 
   async function renderData() {
     if (!dataBound) { bindDataForms(); dataBound = true; }
-    await Promise.all([renderRunwayNow(), renderPayments(), renderCosts(), renderBalances(), renderDonorOptions()]);
+    await Promise.all([renderRunwayNow(), renderMoments(), renderCosts(), renderBalances()]);
   }
 
   async function renderRunwayNow() {
@@ -142,14 +143,6 @@ async function main(supabase) {
     el.innerHTML = `💰 <span class="big">${esc(euro.format(data.funds))}</span> in the pot · 🔥 ${esc(euro.format(data.monthly_cost))} / month · ⏳ ${Number.isFinite(months) ? months.toFixed(1) : "∞"} months (balance as of ${esc(data.balance_as_of)})`;
   }
 
-  async function renderDonorOptions() {
-    const { data } = await supabase.from("avatars").select("id, spec").order("id");
-    const sel = $("payment-donor");
-    const current = sel.value;
-    sel.replaceChildren(new Option("none", ""), ...(data || []).map((a) => new Option(`${a.spec.displayName || "(anonymous)"} · ${a.id}`, a.id)));
-    sel.value = current;
-  }
-
   function rowActions(onEdit, onDelete) {
     const td = document.createElement("td");
     const box = document.createElement("div"); box.className = "actions";
@@ -159,32 +152,57 @@ async function main(supabase) {
     return td;
   }
 
-  async function renderPayments() {
-    const errorEl = $("payments-error");
-    const { data, error } = await supabase.from("payments").select("id, amount, received_on, kind, payer_name, donor_id, note, created_by").order("received_on", { ascending: false }).order("created_at", { ascending: false });
-    if (error) { errorEl.textContent = error.message; return; }
-    $("payments-rows").replaceChildren(...data.map((p) => {
+  const KIND_LABEL = { donation: "💛 raised", sponsorship: "💛 raised", other: "💛 raised" };
+  let miiNames = new Map(); // avatar id → { name, email }
+
+  async function renderMoments() {
+    const errorEl = $("moments-error");
+    const [{ data: avatars, error: e0 }, { data: moments, error: e1 }, { data: payments, error: e2 }] = await Promise.all([
+      supabase.from("avatars").select("id, spec, owner_email"),
+      supabase.from("moments").select("id, owner_email, emoji, text, happened_on, created_by").order("happened_on", { ascending: false }).order("created_at", { ascending: false }),
+      supabase.from("payments").select("id, amount, received_on, kind, payer_name, donor_id, note, created_by").order("received_on", { ascending: false }).order("created_at", { ascending: false }),
+    ]);
+    if (e0 || e1 || e2) { errorEl.textContent = (e0 || e1 || e2).message; return; }
+    miiNames = new Map((avatars || []).map((a) => [a.id, { name: a.spec?.displayName || a.owner_email.split("@")[0], email: a.owner_email }]));
+    const rows = [
+      ...(moments || []).map((m) => ({ table: "moments", id: m.id, date: m.happened_on, what: `${m.emoji} ${m.text}`, who: m.owner_email.split("@")[0], whoTitle: m.owner_email, by: m.created_by, raw: m })),
+      ...(payments || []).map((p) => ({ table: "payments", id: p.id, date: p.received_on, what: `${KIND_LABEL[p.kind] || p.kind} · ${euro.format(p.amount)}${p.note ? ` · ${p.note}` : ""}`, who: p.donor_id ? (miiNames.get(p.donor_id)?.name || p.payer_name || "") : (p.payer_name || ""), whoTitle: p.donor_id ? miiNames.get(p.donor_id)?.email || "" : "", by: p.created_by, raw: p })),
+    ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    $("moments-rows").replaceChildren(...rows.map((r) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${esc(p.received_on)}</td><td class="num">${esc(euro.format(p.amount))}</td><td>${esc(p.kind)}</td><td class="wrap">${esc(p.payer_name || "")}${p.donor_id ? ` <span class="muted">(${esc(p.donor_id)})</span>` : ""}</td><td class="muted wrap">${esc(p.note || "")}</td><td class="muted by" title="${esc(p.created_by || "")}">${esc(who(p.created_by))}</td>`;
-      tr.append(rowActions(() => editPayment(p), async () => {
-        const { error } = await supabase.from("payments").delete().eq("id", p.id);
-        if (error) errorEl.textContent = error.message; else { await renderPayments(); await renderRunwayNow(); }
+      tr.innerHTML = `<td>${esc(r.date)}</td><td class="wrap">${esc(r.what)}</td><td class="wrap" title="${esc(r.whoTitle)}">${esc(r.who)}</td><td class="muted by" title="${esc(r.by || "")}">${esc(who(r.by))}</td>`;
+      tr.append(rowActions(() => editRow(r), async () => {
+        const { error } = await supabase.from(r.table).delete().eq("id", r.id);
+        if (error) errorEl.textContent = error.message; else { await renderMoments(); await renderRunwayNow(); }
       }));
       return tr;
     }));
   }
 
-  function editPayment(p) {
-    $("payment-id").value = p.id;
-    $("payment-amount").value = p.amount; $("payment-date").value = p.received_on; $("payment-kind").value = p.kind;
-    $("payment-payer").value = p.payer_name || ""; $("payment-donor").value = p.donor_id || ""; $("payment-note").value = p.note || "";
-    $("payment-save").textContent = "Save changes"; $("payment-cancel").hidden = false;
-    $("payment-amount").focus();
+  function showKindFields() {
+    const kind = $("moment-kind").value;
+    for (const label of $("moment-form").querySelectorAll("label[data-for]")) label.hidden = !label.dataset.for.split(" ").includes(kind);
   }
 
-  function resetPaymentForm() {
-    $("payment-form").reset(); $("payment-id").value = ""; $("payment-date").value = today();
-    $("payment-save").textContent = "Add payment"; $("payment-cancel").hidden = true;
+  function editRow(r) {
+    $("moment-id").value = r.id; $("moment-table").value = r.table;
+    if (r.table === "moments") {
+      $("moment-kind").value = "moment"; $("moment-date").value = r.raw.happened_on; $("moment-email").value = r.raw.owner_email;
+      $("moment-text").value = r.raw.text;
+    } else {
+      $("moment-kind").value = "money";
+      $("moment-date").value = r.raw.received_on; $("moment-amount").value = r.raw.amount; $("moment-note").value = r.raw.note || "";
+      $("moment-email").value = r.raw.donor_id ? (miiNames.get(r.raw.donor_id)?.email || "") : "";
+    }
+    showKindFields();
+    $("moment-save").textContent = "Save changes"; $("moment-cancel").hidden = false;
+    $("moment-form").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function resetMomentForm() {
+    $("moment-form").reset(); $("moment-id").value = ""; $("moment-table").value = ""; $("moment-date").value = today();
+    showKindFields();
+    $("moment-save").textContent = "Add highlight"; $("moment-cancel").hidden = true;
   }
 
   async function renderCosts() {
@@ -204,21 +222,39 @@ async function main(supabase) {
   }
 
   function bindDataForms() {
-    resetPaymentForm();
-    $("payment-cancel").addEventListener("click", resetPaymentForm);
+    resetMomentForm();
+    $("moment-kind").addEventListener("change", showKindFields);
+    $("moment-cancel").addEventListener("click", resetMomentForm);
 
-    $("payment-form").addEventListener("submit", async (e) => {
+    $("moment-form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const errorEl = $("payments-error"); errorEl.textContent = "";
-      const row = {
-        amount: Number($("payment-amount").value), received_on: $("payment-date").value, kind: $("payment-kind").value,
-        payer_name: $("payment-payer").value.trim() || null, donor_id: $("payment-donor").value || null, note: $("payment-note").value.trim() || null,
-      };
-      const id = $("payment-id").value;
-      const { error } = id ? await supabase.from("payments").update(row).eq("id", id) : await supabase.from("payments").insert(row);
-      if (error) { errorEl.textContent = error.message; return; }
-      resetPaymentForm();
-      await Promise.all([renderPayments(), renderRunwayNow()]);
+      const errorEl = $("moments-error"); errorEl.textContent = "";
+      const kind = $("moment-kind").value, date = $("moment-date").value;
+      const id = $("moment-id").value, table = $("moment-table").value;
+      const emailFor = $("moment-email").value.trim().toLowerCase();
+      try {
+        if (kind === "moment") {
+          if (!emailFor.includes("@")) throw new Error("Enter the member's MM address.");
+          if (!$("moment-text").value.trim()) throw new Error("Say what they did, in a few words.");
+          await ensureMii(supabase, emailFor, "../src/contracts/avatar.schema.json");
+          const row = { owner_email: emailFor, text: $("moment-text").value.trim(), happened_on: date };
+          const { error } = id && table === "moments" ? await supabase.from("moments").update(row).eq("id", id) : await supabase.from("moments").insert(row);
+          if (error) throw error;
+          if (id && table === "payments") await supabase.from("payments").delete().eq("id", id); // kind changed: move it over
+        } else {
+          // Raised money: credited to the member who brought it in; the note says where it came from.
+          const amount = Number($("moment-amount").value);
+          if (!(amount > 0)) throw new Error("Enter the amount.");
+          if (!emailFor.includes("@")) throw new Error("Enter the member's MM address.");
+          const mii = await ensureMii(supabase, emailFor, "../src/contracts/avatar.schema.json");
+          const row = { amount, received_on: date, kind: "donation", payer_name: mii.name, donor_id: mii.id, note: $("moment-note").value.trim() || null };
+          const { error } = id && table === "payments" ? await supabase.from("payments").update(row).eq("id", id) : await supabase.from("payments").insert(row);
+          if (error) throw error;
+          if (id && table === "moments") await supabase.from("moments").delete().eq("id", id);
+        }
+      } catch (err) { errorEl.textContent = err.message; return; }
+      resetMomentForm();
+      await Promise.all([renderMoments(), renderRunwayNow()]);
     });
 
     $("cost-form").addEventListener("submit", async (e) => {
