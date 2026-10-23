@@ -70,19 +70,20 @@ export function createRecap({ stage, crowdRoot }) {
     document.body.classList.add("recap-playing");
     stage.navigation.reset();
 
-    // 1. Title: slow orbit, zoomed out a little.
+    // 1. Everyone walks to a ring around the garden facing outward while the title card is up:
+    //    by the first chapter they're in place, and nobody can stand in front of anyone.
+    const emotes = crowdRoot?.userData.groupEmotes;
+    const ring = !!emotes?.play("recap-circle", { busy: "replace" });
     stage.navigation.zoomTo(1.15);
     spin(0.0025);
     const intro = card("title", `<small>Manage and More · Monthly recap</small><h1>${esc(title)}</h1><p>what we did</p>`, 3500);
-    await intro.done; await intro.remove();
+    await intro.done;
+    if (ring) for (let i = 0; i < 44 && emotes.getStatus().phase === "formation" && !skip; i++) await sleep(250); // title stays up until the ring is formed (≤ 11 s more)
+    await intro.remove();
 
-    // 2. Everyone forms a ring around the garden facing outward (nobody can stand in front of
-    //    anyone), then one chapter per member: the camera moves round the ring to their face while
-    //    they dance; the highlights pop up one by one and the neighbours cheer.
+    // 2. One chapter per member: the camera moves round the outside of the ring to their face
+    //    while they dance; the highlights pop up one by one and the neighbours cheer.
     spin(0);
-    const emotes = crowdRoot?.userData.groupEmotes;
-    const ring = !!emotes?.play("recap-circle", { busy: "replace" });
-    if (ring) for (let i = 0; i < 56 && emotes.getStatus().phase === "formation" && !skip; i++) await sleep(250); // up to 14 s to gather
     const tmp = new (await import("three")).Vector3();
     for (const [i, ch] of chapters.entries()) {
       if (skip) break;
