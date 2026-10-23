@@ -42,11 +42,8 @@ Files: `supabase/migrations/*_auth_editors.sql` (tables, policies, trigger), `ad
    add the same URL plus `http://localhost:8080/admin/` to redirect URLs (confirmation and reset links return there).
 4. Apply the migrations from this repo (`npx supabase link --project-ref <ref>` then `npx supabase db push`).
    Never create tables by hand in the Studio.
-5. Bootstrap the first admin once, in the SQL editor:
-   ```sql
-   insert into public.allowed_email_domains (domain) values ('manageandmore.de');
-   insert into public.admins (email, added_by) values ('first.last@manageandmore.de', 'bootstrap');
-   ```
+5. The allowed domain and the first admin come from `supabase/migrations/*_bootstrap.sql`, so `db push`
+   covers them. Further admins are added on `/admin/`.
 6. Put the project URL and **anon** key into `config.js` → `supabase`. The anon key is meant to be public; the
    **service-role key never goes near the repo or the browser.**
 7. Supabase's built-in mailer is rate-limited (a few emails per hour) and fine for a handful of editors. If sign-ups

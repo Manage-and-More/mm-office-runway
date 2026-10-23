@@ -1,7 +1,7 @@
 -- Local development seed (runs on `supabase db reset`, never in production).
 -- Production bootstrap: see docs/AUTH.md (first admin) and docs/DATABASE.md (first numbers).
-insert into public.allowed_email_domains (domain, note) values ('manageandmore.de', 'Manage and More Google Workspace');
-insert into public.admins (email, added_by) values ('arnav.singh@manageandmore.de', 'seed');
+insert into public.allowed_email_domains (domain, note) values ('manageandmore.de', 'Manage and More Google Workspace') on conflict (domain) do nothing;
+insert into public.admins (email, added_by) values ('arnav.singh@manageandmore.de', 'seed') on conflict (email) do nothing;
 
 -- Local test logins (see docs/AUTH.md, "Local test accounts"). Password for both: mm-runway-local
 -- The domain guard runs here too, so these must be on an allowed domain.
