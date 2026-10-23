@@ -1,6 +1,20 @@
 import { GARDEN_RADIUS, CROWD_OUTER_RADIUS } from '../../contracts/module.js';
 
 export const FORMATIONS = {
+  // One wide ring around the garden, evenly spaced, for the monthly recap: the camera circles outside it.
+  'recap-ring'(count) {
+    const slots = [];
+    for (let radius = GARDEN_RADIUS + 1.0; slots.length < count && radius <= CROWD_OUTER_RADIUS - 0.5; radius += 1.3) {
+      const capacity = Math.floor(2 * Math.PI * radius / 1.6);
+      const ringCount = Math.min(capacity, count - slots.length);
+      for (let i = 0; i < ringCount; i++) {
+        const angle = i / ringCount * Math.PI * 2;
+        slots.push({ x: Math.sin(angle) * radius, z: Math.cos(angle) * radius });
+      }
+    }
+    if (slots.length < count) throw new Error('Formation exceeds available lobby space');
+    return slots;
+  },
   'garden-rings'(count) {
     const slots = [];
     for (let radius = GARDEN_RADIUS + 0.6; slots.length < count && radius <= CROWD_OUTER_RADIUS - 0.5; radius += 1.15) {

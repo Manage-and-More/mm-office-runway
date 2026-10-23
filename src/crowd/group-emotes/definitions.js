@@ -2,6 +2,16 @@
 // The dance demo uses our existing playful dance loop, not a finished rumba clip.
 export const GROUP_EMOTES = [
   {
+    // Monthly recap: everyone lines up in a ring around the garden facing outward and holds it
+    // while the camera visits each person. The recap cancels it before the finale.
+    id: 'recap-circle', label: 'Recap circle (hold)',
+    phases: [
+      { type: 'formation', formation: 'recap-ring', timeout: 20 },
+      { type: 'motion', motion: 'idle', duration: 900, facing: 'outward' },
+      { type: 'release', duration: 0.6 },
+    ],
+  },
+  {
     id: 'garden-dance', label: 'Gather & dance',
     phases: [
       { type: 'formation', formation: 'garden-rings', timeout: 80 },

@@ -41,6 +41,7 @@ export function createRecap({ stage, crowdRoot }) {
   addEventListener("keydown", (e) => { if (e.key === "Escape" && playing) { if (onEscape) onEscape(); else skip = true; } });
 
   function finish() {
+    if (crowdRoot?.userData.groupEmotes?.getStatus().emote === "recap-circle") crowdRoot.userData.groupEmotes.cancel();
     for (const c of layer.querySelectorAll(".recap-card, .recap-skip, .recap-sound")) c.remove();
     music.stop();
     spin(0);
@@ -75,9 +76,13 @@ export function createRecap({ stage, crowdRoot }) {
     const intro = card("title", `<small>Manage and More · Monthly recap</small><h1>${esc(title)}</h1><p>what we did</p>`, 3500);
     await intro.done; await intro.remove();
 
-    // 2. One chapter per member: the camera swings over to their Mii and follows it close up while
-    //    it dances; the highlights pop up one by one and the neighbours cheer.
+    // 2. Everyone forms a ring around the garden facing outward (nobody can stand in front of
+    //    anyone), then one chapter per member: the camera moves round the ring to their face while
+    //    they dance; the highlights pop up one by one and the neighbours cheer.
     spin(0);
+    const emotes = crowdRoot?.userData.groupEmotes;
+    const ring = !!emotes?.play("recap-circle", { busy: "replace" });
+    if (ring) for (let i = 0; i < 56 && emotes.getStatus().phase === "formation" && !skip; i++) await sleep(250); // up to 14 s to gather
     const tmp = new (await import("three")).Vector3();
     for (const [i, ch] of chapters.entries()) {
       if (skip) break;
@@ -89,7 +94,8 @@ export function createRecap({ stage, crowdRoot }) {
         const others = (crowdRoot?.userData.miis?.() ?? []).filter((m) => m !== mii);
         stage.navigation.focus(() => (head ? head.getWorldPosition(tmp) : mii.getWorldPosition(tmp).setY(tmp.y + 0.9)), {
           atHead: !!head,
-          getHeading: () => mii.rotation.y,
+          // In the ring everyone faces outward, so the camera stands outside the ring looking in.
+          getHeading: () => (ring ? Math.atan2(mii.position.x, mii.position.z) : mii.rotation.y),
           avoid: () => others.filter((m) => m.visible).map((m) => m.position), // nobody blocks the face
         });
         stage.navigation.zoomTo(0.24); // a portrait: the Mii fills about half the frame
@@ -124,6 +130,7 @@ export function createRecap({ stage, crowdRoot }) {
 
     // 4. Finale: everyone gathers and dances, confetti, group photo.
     stage.navigation.zoomTo(1.0); // stay above the clouds for the group shot
+    crowdRoot?.userData.groupEmotes?.cancel();
     crowdRoot?.userData.groupEmotes?.play("garden-dance", { busy: "replace" });
     stage.celebrate?.(1);
     await sleep(4000);
