@@ -113,7 +113,7 @@ async function start() {
       ({ left: () => n.rotate(-Math.PI / 8), right: () => n.rotate(Math.PI / 8), in: () => n.zoom(0.8), out: () => n.zoom(1.25), reset: () => n.reset() })[button.dataset.nav]();
     });
   }
-  if (debug) addSimulatePanel(runway, active);
+  if (debug) { addSimulatePanel(runway, active); window.__runway = { stage, crowdRoot }; } // dev handle for the console
   const clock = new THREE.Clock();
   stage.renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.1);

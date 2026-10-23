@@ -44,14 +44,25 @@ export function createRecap({ stage, crowdRoot }) {
     stage.navigation.reset();
 
     // 1. Title: slow orbit, zoomed out a little.
-    stage.navigation.zoom(1.15);
+    stage.navigation.zoomTo(1.15);
     spin(0.0025);
     const intro = card("title", `<small>Manage and More · Monthly recap</small><h1>${esc(title)}</h1><p>what we did</p>`, 4500);
     await intro.done; await intro.remove();
 
-    // 2. One chapter per member: zoom in, their Mii dances, moments pop up one by one, neighbours cheer.
-    stage.navigation.zoom(0.62);
+    // 2. One chapter per member: the camera swings over to their Mii and follows it close up while
+    //    it dances; the highlights pop up one by one and the neighbours cheer.
+    spin(0);
+    const tmp = new (await import("three")).Vector3();
     for (const [i, ch] of chapters.entries()) {
+      const mii = (crowdRoot?.userData.miis?.() ?? []).find((m) => m.name === `mii:${ch.id}`);
+      const started = performance.now();
+      if (mii) {
+        // Centre on the face: the head joint when the Mii has one, else a point at head height.
+        const head = mii.userData.joints?.head;
+        stage.navigation.focus(() => (head ? head.getWorldPosition(tmp) : mii.getWorldPosition(tmp).setY(tmp.y + 0.9)), { atHead: !!head, getHeading: () => mii.rotation.y });
+        stage.navigation.zoomTo(0.24); // a portrait: the Mii fills about half the frame
+      }
+      await sleep(1200); // let the camera arrive before the card appears
       react(ch.id, "dance", "🎉");
       for (const other of everyone()) if (other !== ch.id && Math.random() < 0.5) react(other, "cheer");
       const c = card("chapter", `<div class="who">${esc(ch.name)}</div><ul></ul>`, 0);
@@ -63,12 +74,15 @@ export function createRecap({ stage, crowdRoot }) {
         requestAnimationFrame(() => li.classList.add("in"));
         await sleep(1700);
       }
-      await sleep(1400);
+      react(ch.id, "dance", "🥳");
+      await sleep(Math.max(1400, 7000 - (performance.now() - started))); // every chapter gets at least 7 s on screen
       await c.remove();
     }
 
-    // 3. The numbers.
-    stage.navigation.zoom(1.5);
+    // 3. The numbers: back to the whole garden.
+    stage.navigation.focus(null);
+    stage.navigation.zoomTo(1.5);
+    spin(0.0025);
     const numbers = card("numbers", `
       <div><b>${totals.members}</b><span>member${totals.members === 1 ? "" : "s"}</span></div>
       <div><b>${totals.moments}</b><span>highlight${totals.moments === 1 ? "" : "s"}</span></div>
@@ -76,7 +90,7 @@ export function createRecap({ stage, crowdRoot }) {
     await numbers.done; await numbers.remove();
 
     // 4. Finale: everyone gathers and dances, confetti, group photo.
-    stage.navigation.zoom(1.0); // stay above the clouds for the group shot
+    stage.navigation.zoomTo(1.0); // stay above the clouds for the group shot
     crowdRoot?.userData.groupEmotes?.play("garden-dance", { busy: "replace" });
     stage.celebrate?.(1);
     await sleep(6000);
