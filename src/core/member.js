@@ -22,7 +22,7 @@ const today = () => new Date().toISOString().slice(0, 10);
  * @param {{ onPaymentAdded: () => Promise<void>, onMoment?: (miiId: string | null, emoji: string) => void, people?: { setData(map: Map | null): void } }} hooks
  *   onPaymentAdded runs right after a donation lands; onMoment after a non-money moment; people gets the name-tag data (signed in) or null.
  */
-export function createMemberBar(config, { onPaymentAdded, onMoment, people }) {
+export function createMemberBar(config, { onPaymentAdded, onMoment, people, playHighlights, autoplayHighlights = false }) {
   const settings = supabaseSettings(config);
   if (!settings) return;
   const domains = settings.allowedEmailDomains || [];
@@ -95,6 +95,7 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people }) {
     bar.append(
       el("button", { type: "button", class: "member-btn primary", onclick: () => openMoment() }, ["✨ Add a moment"]),
       el("button", { type: "button", class: "member-btn", onclick: () => openMiis() }, ["🧑‍🎨 My Mii"]),
+      playHighlights ? el("button", { type: "button", class: "member-btn", onclick: () => openHighlights() }, ["🎬 Highlights"]) : "",
       isAdmin ? el("a", { class: "member-btn", href: "admin/" }, ["🛠 Admin"]) : "",
       el("span", { class: "member-who", title: email }, [email.split("@")[0]]),
       el("button", { type: "button", class: "member-btn quiet", onclick: async () => { await (await client()).auth.signOut(); } }, ["Sign out"]),
@@ -200,6 +201,49 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people }) {
     });
   }
 
+  // ───────────────────────────── highlights: one month as a show ─────────────────────────────
+
+  const monthLabel = (y, m) => new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(new Date(y, m, 1));
+  const monthRange = (y, m) => {
+    const pad = (n) => String(n).padStart(2, "0");
+    const last = new Date(y, m + 1, 0).getDate();
+    return { from: `${y}-${pad(m + 1)}-01`, to: `${y}-${pad(m + 1)}-${pad(last)}` };
+  };
+
+  async function loadMonth(y, m) {
+    const sb = await client();
+    const { from, to } = monthRange(y, m);
+    const [{ data: avatars }, { data: moments }, { data: payments }, { data: runway }] = await Promise.all([
+      sb.from("avatars").select("id, spec, owner_email"),
+      sb.from("moments").select("owner_email, emoji, text, happened_on").gte("happened_on", from).lte("happened_on", to).order("happened_on"),
+      sb.from("payments").select("donor_id, amount, received_on").gte("received_on", from).lte("received_on", to),
+      sb.from("public_runway").select("monthly_cost").maybeSingle(),
+    ]);
+    return { avatars: avatars || [], moments: moments || [], payments: payments || [], monthlyCost: Number(runway?.monthly_cost || 0) };
+  }
+
+  async function openHighlights() {
+    const now = new Date();
+    const options = Array.from({ length: 12 }, (_, i) => { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); return { y: d.getFullYear(), m: d.getMonth() }; });
+    const select = el("select", {}, options.map((o, i) => new Option(monthLabel(o.y, o.m) + (i === 0 ? " (so far)" : ""), i)));
+    const box = el("p", { class: "member-notice" });
+    const form = el("form", { class: "member-form" }, [
+      el("p", { class: "muted" }, ["A one-minute show of everyone's moments and donations in that month."]),
+      el("label", {}, ["Month", select]),
+      el("div", { class: "member-row" }, [el("button", { type: "submit", class: "member-btn primary" }, ["▶ Play"])]),
+      box,
+    ]);
+    const d = dialog("Highlights", form);
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const { y, m } = options[Number(select.value)];
+      msg(box, "Loading…");
+      const played = await playHighlights(await loadMonth(y, m), monthLabel(y, m));
+      if (!played) return msg(box, `Nothing to show for ${monthLabel(y, m)} yet. Add a moment!`, true);
+      d.close();
+    });
+  }
+
   function openMiis() {
     miiChanged = false;
     const frame = el("iframe", { class: "member-frame", src: "tools/avatar-maker/?embed", title: "My Mii" });
@@ -218,7 +262,8 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people }) {
   if (stored?.user?.email || arrivingFromEmail) {
     client().then(async (sb) => {
       const { data: { session } } = await sb.auth.getSession();
-      sync(session);
+      await sync(session);
+      if (autoplayHighlights && session && playHighlights) { const n = new Date(); setTimeout(async () => playHighlights(await loadMonth(n.getFullYear(), n.getMonth()), monthLabel(n.getFullYear(), n.getMonth())), 1500); }
       const params = new URLSearchParams(location.hash.slice(1) || location.search);
       if (params.get("error_description")) alertBox(decodeURIComponent(params.get("error_description").replace(/\+/g, " ")));
       if (arrivingFromEmail) history.replaceState(null, "", location.pathname + (location.search.includes("local") ? "?local" : ""));

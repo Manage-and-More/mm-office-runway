@@ -78,7 +78,19 @@ async function start() {
       crowdRoot?.userData.react?.(id, info?.mine ? party : "wave", reducedMotion ? null : emoji);
     },
   });
+  // Highlights: one calendar month as a one-minute show (src/core/recap.js), from the bar or ?recap.
+  let recap = null;
+  const playHighlights = async (data, label) => {
+    const mod = await import("./recap.js");
+    recap ??= mod.createRecap({ stage, crowdRoot });
+    const { chapters, totals } = mod.buildHighlights(data);
+    if (!chapters.length) return false;
+    recap.play(chapters, totals, label);
+    return true;
+  };
   createMemberBar(config, {
+    playHighlights,
+    autoplayHighlights: params.has("recap"),
     onPaymentAdded: () => runway.release(),
     // A moment: the member's Mii dances with the emoji, neighbours cheer, a small sky celebration.
     onMoment: (miiId, emoji) => {
@@ -102,14 +114,6 @@ async function start() {
     });
   }
   if (debug) addSimulatePanel(runway, active);
-  // PROTOTYPE: ?recap plays the monthly recap show with sample moments (see src/core/recap.js).
-  if (params.has("recap")) {
-    const { createRecap, sampleChapters } = await import("./recap.js");
-    const recap = createRecap({ stage, crowdRoot, monthLabel: new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(new Date()) });
-    const chapters = sampleChapters(avatars);
-    setTimeout(() => recap.play(chapters, { members: chapters.length, moments: chapters.reduce((n, c) => n + c.moments.length, 0), money: "€3,400", runwayBought: "0.5 months" }), 2500);
-  }
-
   const clock = new THREE.Clock();
   stage.renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.1);

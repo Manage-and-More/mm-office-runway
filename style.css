@@ -546,10 +546,10 @@ body[data-mood="panic"] .chip.edge i { animation-duration: 0.6s; }
 .people-tag.hover { opacity: 1; padding: 6px 10px; font-size: 13px; box-shadow: 0 4px 14px rgb(35 41 92 / 0.25); z-index: 1; }
 .people-tag:not(.me):not(.donor):not(.hover) { opacity: 0.35; }
 
-/* PROTOTYPE: monthly recap show overlay (src/core/recap.js) */
+/* Highlights show overlay (src/core/recap.js) */
 .recap { position: fixed; inset: 0; pointer-events: none; z-index: 4; display: grid; place-items: end center; padding-bottom: 8vh; }
 .recap[hidden] { display: none; }
-body.recap-playing .hud, body.recap-playing .member-bar, body.recap-playing .nav, body.recap-playing .people { opacity: 0; transition: opacity 0.6s; }
+body.recap-playing .hud, body.recap-playing .member-bar, body.recap-playing .nav, body.recap-playing .people, body.recap-playing .hud-toggle { opacity: 0; transition: opacity 0.6s; }
 .recap-card { pointer-events: auto; opacity: 0; transform: translateY(16px) scale(0.98); transition: opacity 0.5s, transform 0.5s; color: var(--ink); font-family: var(--font-body); text-align: center; }
 .recap-card.in { opacity: 1; transform: none; }
 .recap-card.title { place-self: center; padding: 28px 44px; border-radius: 28px; background: #ffffffe6; box-shadow: 0 12px 40px rgb(35 41 92 / 0.25); }
