@@ -34,7 +34,7 @@ export function createRecap({ stage, crowdRoot }) {
 
   /**
    * @param {{ id: string, name: string, moments: { emoji: string, text: string }[] }[]} chapters  one per member
-   * @param {{ members: number, moments: number, money: string, runwayBought: string }} totals
+   * @param {{ members: number, moments: number, money: string, moneyRaised: number }} totals
    */
   const music = createMusic();
   let playing = false, skip = false, onEscape = null;
@@ -114,7 +114,7 @@ export function createRecap({ stage, crowdRoot }) {
     const numbers = card("numbers", `
       <div><b>${totals.members}</b><span>member${totals.members === 1 ? "" : "s"}</span></div>
       <div><b>${totals.moments}</b><span>highlight${totals.moments === 1 ? "" : "s"}</span></div>
-      ${totals.moneyRaised > 0 ? `<div><b>${esc(totals.money)}</b><span>raised</span></div><div><b>${esc(totals.runwayBought)}</b><span>of runway bought</span></div>` : ""}`, 5000);
+      ${totals.moneyRaised > 0 ? `<div><b>${esc(totals.money)}</b><span>raised</span></div>` : ""}`, 5000);
     await numbers.done; await numbers.remove();
 
     // 4. Finale: everyone gathers and dances, confetti, group photo.
@@ -163,7 +163,6 @@ export function buildHighlights({ avatars, moments, payments, monthlyCost }) {
     members: chapters.length,
     moments: moments.length + payments.length,
     money: euro.format(money),
-    runwayBought: monthlyCost > 0 ? `${(money / monthlyCost).toFixed(1)} months` : "–",
   };
   return { chapters, totals };
 }
