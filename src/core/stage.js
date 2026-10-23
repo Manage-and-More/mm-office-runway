@@ -82,10 +82,56 @@ export function createStage(canvas) {
   resize();
   camera.position.copy(cameraHome);
 
+  // Navigation: orbit around the garden (drag, ← →, buttons) and zoom (wheel, pinch, buttons).
+  // Targets are eased every frame, and the gentle pointer sway stays on top.
+  const nav = { azimuth: 0, zoom: 1, targetAzimuth: 0, targetZoom: 1 };
+  const ZOOM = { min: 0.45, max: 1.7 };
+  const clampZoom = (z) => Math.min(ZOOM.max, Math.max(ZOOM.min, z));
+  const navigation = {
+    rotate(step = Math.PI / 8) { nav.targetAzimuth += step; },
+    zoom(factor) { nav.targetZoom = clampZoom(nav.targetZoom * factor); },
+    reset() { nav.targetAzimuth = Math.round(nav.targetAzimuth / (2 * Math.PI)) * 2 * Math.PI; nav.targetZoom = 1; },
+  };
+  const surface = renderer.domElement;
+  let drag = null, pinch = null;
+  surface.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    drag = { x: e.clientX, azimuth: nav.targetAzimuth, id: e.pointerId };
+    try { surface.setPointerCapture(e.pointerId); } catch { /* synthetic events have no active pointer */ }
+  });
+  surface.addEventListener("pointermove", (e) => {
+    if (drag && e.pointerId === drag.id) nav.targetAzimuth = drag.azimuth + (e.clientX - drag.x) / innerWidth * Math.PI * 1.2;
+  });
+  const endDrag = (e) => { if (drag && e.pointerId === drag.id) drag = null; };
+  surface.addEventListener("pointerup", endDrag);
+  surface.addEventListener("pointercancel", endDrag);
+  surface.addEventListener("wheel", (e) => { e.preventDefault(); navigation.zoom(Math.exp(e.deltaY * 0.0015)); }, { passive: false });
+  surface.addEventListener("touchstart", (e) => { if (e.touches.length === 2) pinch = { d: Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY), zoom: nav.targetZoom }; }, { passive: true });
+  surface.addEventListener("touchmove", (e) => {
+    if (!pinch || e.touches.length !== 2) return;
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    nav.targetZoom = clampZoom(pinch.zoom * pinch.d / d);
+  }, { passive: true });
+  surface.addEventListener("touchend", () => { pinch = null; }, { passive: true });
+  addEventListener("keydown", (e) => {
+    if (e.target.closest("input, select, textarea, dialog")) return;
+    if (e.key === "ArrowLeft") navigation.rotate(-Math.PI / 12);
+    if (e.key === "ArrowRight") navigation.rotate(Math.PI / 12);
+    if (e.key === "+" || e.key === "=") navigation.zoom(0.85);
+    if (e.key === "-") navigation.zoom(1 / 0.85);
+    if (e.key === "0") navigation.reset();
+  });
+
+  const goal = new THREE.Vector3();
   function updateCamera() {
-    camera.position.x += (cameraHome.x + pointer.x * 1.5 - camera.position.x) * 0.03;
-    camera.position.y += (cameraHome.y - pointer.y * 1 - camera.position.y) * 0.03;
-    camera.position.z += (cameraHome.z - camera.position.z) * 0.05;
+    const ease = reducedMotion ? 1 : 0.08;
+    nav.azimuth += (nav.targetAzimuth - nav.azimuth) * ease;
+    nav.zoom += (nav.targetZoom - nav.zoom) * ease;
+    const r = cameraHome.z * nav.zoom, y = cameraHome.y * nav.zoom;
+    goal.set(lookAt.x + Math.sin(nav.azimuth) * r + pointer.x * 1.5, y - pointer.y * 1, lookAt.z + Math.cos(nav.azimuth) * r);
+    camera.position.x += (goal.x - camera.position.x) * 0.06;
+    camera.position.y += (goal.y - camera.position.y) * 0.06;
+    camera.position.z += (goal.z - camera.position.z) * 0.06;
     camera.lookAt(lookAt);
   }
 
@@ -95,7 +141,7 @@ export function createStage(canvas) {
     horizonPoint: new THREE.Vector3(0, 0, -ISLAND_RADIUS),
   });
 
-  return { renderer, scene, camera, updateCamera, setStress: skyLayer.update, celebrate: skyLayer.celebrate };
+  return { renderer, scene, camera, updateCamera, navigation, setStress: skyLayer.update, celebrate: skyLayer.celebrate };
 }
 
 // A floating pastel island: a darker rim underneath, a white plaza for the logo, confetti dots around the rim.

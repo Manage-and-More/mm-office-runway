@@ -16,7 +16,8 @@
       "imports": {
         "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
         "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-        "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.21.0/dist/lil-gui.esm.min.js"
+        "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.21.0/dist/lil-gui.esm.min.js",
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/+esm"
       }
     }
   </script>
@@ -24,8 +25,15 @@
 </head>
 <body>
   <canvas id="scene" aria-hidden="true"></canvas>
-  <a class="lab-link" href="tools/motion-lab/">Mii Motion Lab ↗</a>
   <a class="donate" id="donate" hidden rel="noopener" target="_blank">🏠 Keep our office</a>
+
+  <nav class="nav" aria-label="Camera">
+    <button type="button" data-nav="left" title="Rotate left (←)">⟲</button>
+    <button type="button" data-nav="right" title="Rotate right (→)">⟳</button>
+    <button type="button" data-nav="in" title="Zoom in (+)">＋</button>
+    <button type="button" data-nav="out" title="Zoom out (−)">－</button>
+    <button type="button" data-nav="reset" title="Reset view (0)">⌂</button>
+  </nav>
 
   <main class="hud">
     <h1 class="title">Manage and More office runway</h1>

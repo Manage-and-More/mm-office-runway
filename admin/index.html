@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MM Runway Admin</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#8fd3ff">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700&display=swap">
+  <link rel="stylesheet" href="admin.css">
+  <!-- The admin page is the only page that loads supabase-js. The public page stays dependency-free. -->
+  <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/+esm"
+      }
+    }
+  </script>
+  <script type="module" src="admin.js"></script>
+</head>
+<body>
+  <header class="top">
+    <a class="back" href="../">← Runway</a>
+    <h1 class="title">Manage and More · runway admin</h1>
+    <div class="who" id="who" hidden>
+      <span id="who-email"></span>
+      <button type="button" id="signout">Sign out</button>
+    </div>
+  </header>
+
+  <main class="card" id="main" aria-live="polite">
+    <!-- One of these sections is shown at a time; admin.js switches them. -->
+    <section data-view="loading"><p>Checking your session…</p></section>
+
+    <section data-view="unconfigured" hidden>
+      <h2>Supabase isn't configured yet</h2>
+      <p>Set <code>config.supabase.url</code> and <code>anonKey</code> in <code>config.js</code>, or for local dev follow <code>docs/AUTH.md</code>.</p>
+    </section>
+
+    <section data-view="signed-out" hidden>
+      <h2>Sign in to change the runway data</h2>
+      <p class="muted">Use your Manage and More address (<span id="domain-hint"></span>). The public page needs no login.</p>
+
+      <form id="password-form" class="stack" autocomplete="on">
+        <label>Email <input type="email" id="email" name="email" placeholder="first.last@manageandmore.de" required autocomplete="username"></label>
+        <label>Password <input type="password" id="password" name="password" minlength="8" required autocomplete="current-password"></label>
+        <div class="row">
+          <button type="submit" class="primary" id="login">Log in</button>
+          <button type="button" id="signup">Create account</button>
+          <button type="button" class="link" id="forgot">Forgot password?</button>
+        </div>
+      </form>
+
+      <button type="button" class="google" id="signin-google" hidden>
+        <svg aria-hidden="true" viewBox="0 0 48 48" width="20" height="20"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.1 1.4-4.9 2.3-8.2 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+        Sign in with Google
+      </button>
+
+      <p class="notice" id="signin-notice" role="status"></p>
+      <p class="error" id="signin-error" role="alert"></p>
+    </section>
+
+    <section data-view="new-password" hidden>
+      <h2>Choose a new password</h2>
+      <form id="new-password-form" class="stack">
+        <label>New password <input type="password" id="new-password" minlength="8" required autocomplete="new-password"></label>
+        <div class="row"><button type="submit" class="primary">Save password</button></div>
+      </form>
+      <p class="error" id="new-password-error" role="alert"></p>
+    </section>
+
+    <section data-view="not-admin" hidden>
+      <h2>This page is for admins</h2>
+      <p>You're signed in as <strong id="not-admin-email"></strong>. Payments and Miis are added on the runway page itself: use the buttons at the top right there.</p>
+      <p><a class="button" href="../">Go to the runway page</a></p>
+    </section>
+
+    <section data-view="editor" hidden>
+      <h2>Runway now</h2>
+      <p class="runway-now" id="runway-now">Loading…</p>
+      <p class="muted small">funds = latest opening balance + payments entered after it − months elapsed × monthly cost. The public page re-reads this every minute.</p>
+      <p><a class="button" href="../tools/avatar-maker/">🧑‍🎨 My Mii</a></p>
+
+      <h3>Payments in</h3>
+      <p class="muted">Every donation, sponsorship or partner payment. Payer names never reach the public page.</p>
+      <form id="payment-form" class="grid-form">
+        <input type="hidden" id="payment-id">
+        <label>Amount (€) <input type="number" id="payment-amount" min="0.01" step="0.01" required></label>
+        <label>Received on <input type="date" id="payment-date" required></label>
+        <label>Kind <select id="payment-kind"><option value="donation">donation</option><option value="sponsorship">sponsorship</option><option value="other">other</option></select></label>
+        <label>Who paid (optional) <input type="text" id="payment-payer" maxlength="120" placeholder="name or company"></label>
+        <label>Their Mii (optional) <select id="payment-donor"><option value="">none</option></select></label>
+        <label class="wide">Note (optional) <input type="text" id="payment-note" maxlength="300"></label>
+        <div class="row wide">
+          <button type="submit" class="primary" id="payment-save">Add payment</button>
+          <button type="button" id="payment-cancel" hidden>Cancel</button>
+        </div>
+      </form>
+      <div class="table-wrap"><table class="editors" id="payments-table">
+        <thead><tr><th>Date</th><th>Amount</th><th>Kind</th><th>Who</th><th>Note</th><th>By</th><th></th></tr></thead>
+        <tbody id="payments-rows"></tbody>
+      </table></div>
+      <p class="error" id="payments-error" role="alert"></p>
+
+      <h3>Monthly cost</h3>
+      <form id="cost-form" class="row">
+        <label class="inline">€ <input type="number" id="cost-amount" min="0.01" step="0.01" required> per month</label>
+        <button type="submit" class="primary">Save</button>
+        <span class="muted small" id="cost-since"></span>
+      </form>
+      <p class="error" id="costs-error" role="alert"></p>
+
+      <h3>Bank balance</h3>
+      <p class="muted">Enter the bank balance when you reconcile. Payments entered before that moment count as already in it; payments entered after it are added on top.</p>
+      <form id="balance-form" class="row">
+        <label class="inline">€ <input type="number" id="balance-amount" step="0.01" required> in the bank today</label>
+        <button type="submit" class="primary">Save</button>
+        <span class="muted small" id="balance-since"></span>
+      </form>
+      <p class="error" id="balances-error" role="alert"></p>
+
+      <div id="admin-tools" hidden>
+        <h3>Admins</h3>
+        <p class="muted">Admins manage this list and the allowed sign-in domains. Everyone else who signs in with an MM account is an editor automatically.</p>
+        <div class="table-wrap"><table class="editors">
+          <thead><tr><th>Email</th><th>Added by</th><th></th></tr></thead>
+          <tbody id="admins-rows"></tbody>
+        </table></div>
+        <form id="add-admin" class="row">
+          <input type="email" id="new-email" placeholder="first.last@manageandmore.de" required autocomplete="off">
+          <button type="submit">Make admin</button>
+        </form>
+        <p class="error" id="admins-error" role="alert"></p>
+
+        <h3>Allowed sign-in domains</h3>
+        <ul id="domains"></ul>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

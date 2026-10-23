@@ -1,28 +1,45 @@
-# Workstream: Avatars (photo → Mii spec)
+# Workstream: Avatars (Mii editor)
 
 **Owns:** `tools/avatar-maker/`, `data/avatars/`. **Contract:** [`src/contracts/avatar.schema.json`](../../src/contracts/avatar.schema.json).
 
-## Goal
+## What it is
 
-Turn each donor's picture into an `AvatarSpec`: a small JSON file of Mii parameters (face shape, skin tone, hair style and color, eyes, glasses, …). It's committed as `data/avatars/<id>.json`, one file per donor.
+`/tools/avatar-maker/` is **My Mii**: every signed-in Manage and More member designs the one Mii that
+represents them on the runway page (also reachable from the "My Mii" button on the page itself, as a
+popup). A picker generated from the schema's enums, a live 3D preview with the crowd's real `buildMii`,
+and Save / Remove against the Supabase `avatars` table. One Mii per account, enforced by the database;
+the id is derived from the account (`arnav.singh@…` → `arnav-singh`).
+
+The crowd on the page shows real people's Miis only. The demo crowd fills in only while nobody has a Mii yet.
 
 ## Privacy rules (hard requirements)
 
-- **The photo never leaves the browser and never enters git.** The tool opens it as a local object URL. Keep originals in `tools/avatar-maker/photos/` (git-ignored) or outside the repo.
-- Only donors who agreed get a file, with `consent: { public: true, givenOn: "YYYY-MM-DD" }`. Keep a record of each consent (email or form) outside the repo.
+- **No photos anywhere.** The editor has no photo input; a Mii is picked by hand.
+- Saving is the consent: the disclaimer under Save says "By clicking Save, you agree to appear publicly.
+  It won't show your name." The saved spec carries `consent.public: true` and the date of first save,
+  which the schema and the database require.
 - No photo-derived textures: parameters only.
-- `displayName` is optional. Leave it out for anonymous donors.
+- The display name is optional and only ever shown to signed-in members. The public view strips it.
+- **Withdrawn consent:** the person presses "Remove my Mii". The row is deleted and the Mii leaves the page
+  on its next load. No admin step.
 
-## Getting started
+## Workflow
 
-- Open `/tools/avatar-maker/` (with `npm run dev` running). The placeholder shows photo | JSON | live 3D preview and downloads the JSON.
-- The preview uses the crowd's real `buildMii`, so the result looks like what will walk on the page. It will improve as the crowd workstream improves `mii.js`.
-- Ideas for the real tool: a proper picker UI generated from the schema's enums, and assistance from on-device face landmarks (e.g. MediaPipe Face Landmarker running in the browser) to pre-fill face shape, skin tone and hair color from the photo.
-- Adding a new enum value (a new hairstyle, say) is a contract change: open a PR on `src/contracts/` and agree it with the crowd owner.
+1. Sign in on the runway page, press "My Mii".
+2. Pick a look (or roll a random one), optionally a name other members will see, and save.
+3. Reload the page: you walk around the garden, with "you" over your head while signed in.
 
-## Workflow per donor batch
+## Changing the options (a contract change)
 
-1. Create the specs in the tool and save them to `data/avatars/<firstname-lastinitial>.json`.
-2. Run `npm run check` to validate against the schema and confirm `id` equals the file name.
-3. Open a PR `avatars/batch-N`. It only touches `data/avatars/`.
-4. Delete the `sample-*` files once real donors land.
+A new hairstyle or accessory is an enum value in `src/contracts/avatar.schema.json`:
+
+1. Agree it with the crowd workstream owner (they render it; unknown values fall back to a default, never throw).
+2. Edit the schema, then add a migration with the output of `node scripts/avatar-schema-sql.mjs` so the
+   database validates the same contract. `npm run check` fails until both match.
+3. The editor picks the new value up automatically: the form is generated from the schema.
+
+## Fallback files
+
+`data/avatars/*.json` are the samples and the offline fallback (`npm run avatars` bundles them into
+`data/avatar-index.json`, which the page uses only when Supabase is unreachable). Delete the `sample-*`
+files once real donors are in the database.

@@ -6,3 +6,7 @@ data/avatar-index.json
 
 # Donor photos must never enter git: keep them here, locally only
 tools/avatar-maker/photos/
+
+# Supabase local dev: CLI state and provider secrets never enter git
+supabase/.temp/
+supabase/.env

@@ -17,7 +17,7 @@ npm run check      # what CI runs: schema-validate avatars + syntax-check all JS
 ```
 
 Useful URLs while developing:
-- 🎛 **Simulate** (bottom-left, also on the live site; `/?debug` opens it) fakes the money: runway slider, donate/lose, crash, story mode, stress-curve tuning, and each module's own knobs.
+- 🎛 **Simulate** panel (`/?debug` opens it; there is no button on the page) fakes the money: runway slider, donate/lose, crash, story mode, stress-curve tuning, and each module's own knobs.
 - `/?only=logo` or `/?only=crowd` renders one module alone, so a broken neighbour can't get in your way.
 - `/tools/avatar-maker/` opens the photo → avatar tool.
 

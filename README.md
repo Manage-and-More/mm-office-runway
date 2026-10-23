@@ -9,13 +9,13 @@ Manage and More is a student-led organization. We crowdfunded our office and now
 
 ## Quick start
 
-The **[Mii Motion Lab](tools/motion-lab/)** previews eight original procedural animations on a generic Mii-style test character, with a live gallery, orbit controls, playback speed, and timeline scrubbing. See [the animation lab notes](tools/motion-lab/README.md) for the pose contract and future rig integration.
+The [Mii Motion Lab](tools/motion-lab/) (`/tools/motion-lab/`, not linked from the page) previews eight original procedural animations on a generic Mii-style test character, with a live gallery, orbit controls, playback speed, and timeline scrubbing. See [the animation lab notes](tools/motion-lab/README.md) for the pose contract and future rig integration.
 
 ```bash
 npm run dev
 ```
 
-Then open http://localhost:8080/?debug to fake the funds with the debug panel. Node is only needed for the dev scripts; the site itself has no build step.
+Then open http://localhost:8080/?debug to fake the funds with the Simulate panel (it only appears with `?debug`). Node is only needed for the dev scripts; the site itself has no build step.
 
 ## Contributing
 
@@ -27,16 +27,15 @@ We build this in four parallel workstreams (core, logo, crowd, avatars), each in
 
 ## Data source
 
-A Google Sheet published as CSV (File → Share → Publish to web → CSV), with its URL set as `sheetCsvUrl` in [`config.js`](config.js):
+The numbers come from Supabase (`config.js` → `supabase`). MM members sign in on the page itself (top right)
+to add payments and Miis; admins keep costs, balances and corrections on [`/admin/`](admin/). The page reads
+only the derived totals from a public view.
+See [docs/DATABASE.md](docs/DATABASE.md) for the tables and the funds rule, and [docs/AUTH.md](docs/AUTH.md)
+for who may edit.
 
-| A | B |
-|---|---|
-| funds | monthly_cost |
-| 6000 | 1000 |
-
-Without a sheet, the page reads [`data.json`](data.json). Changes show up within about 5 minutes, because Google caches published CSVs. Anyone with the link can read a published sheet, so keep only these two numbers in it.
-
-Excel Online links can't be read by a web page, because Microsoft doesn't allow other websites to fetch them (no CORS headers). Keep the numbers in the Google Sheet, or add a scheduled GitHub Action that copies them from Excel into `data.json`.
+Fallbacks, in order: a Google Sheet published as CSV (`sheetCsvUrl` in [`config.js`](config.js), columns
+`funds` and `monthly_cost`), then [`data.json`](data.json). A failing source logs a warning and the next one
+is used, so the page never goes blank.
 
 ## Deploy
 

@@ -1,4 +1,5 @@
-// Loads { funds, monthlyCost } from a published Google Sheet (CSV), falling back to data.json.
+// Loads { funds, monthlyCost }: Supabase (public_runway view) → published Google Sheet (CSV) → data.json.
+import { supabaseSettings, supabaseGet } from "./supabase.js";
 
 function toNumber(raw) {
   const n = Number(String(raw).replace(/[^\d.\-]/g, ""));
@@ -41,6 +42,17 @@ async function fromSheet(url) {
   return { funds: col("funds"), monthlyCost: col("monthly_cost"), source: "sheet" };
 }
 
+/** The public_runway view returns one row, or none until an opening balance and a cost exist. */
+export function parseRunwayRows(rows) {
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row || row.funds == null || row.monthly_cost == null) throw new Error("Supabase has no runway numbers yet");
+  return { funds: toNumber(row.funds), monthlyCost: toNumber(row.monthly_cost), source: "supabase" };
+}
+
+async function fromSupabase(settings) {
+  return parseRunwayRows(await supabaseGet(settings, "public_runway?select=funds,monthly_cost"));
+}
+
 async function fromJson(url) {
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`JSON HTTP ${res.status}`);
@@ -48,7 +60,16 @@ async function fromJson(url) {
   return { funds: toNumber(data.funds), monthlyCost: toNumber(data.monthlyCost), source: "json" };
 }
 
-export async function loadFunds({ sheetCsvUrl, fallbackJsonUrl }) {
+export async function loadFunds(config) {
+  const { sheetCsvUrl, fallbackJsonUrl } = config;
+  const supabase = supabaseSettings(config);
+  if (supabase) {
+    try {
+      return await fromSupabase(supabase);
+    } catch (err) {
+      console.warn("Supabase failed, trying the sheet:", err);
+    }
+  }
   if (sheetCsvUrl) {
     try {
       return await fromSheet(sheetCsvUrl);
