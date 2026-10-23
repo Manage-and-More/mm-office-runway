@@ -140,8 +140,13 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
       const { email, password } = creds();
       if (!domainOk(email)) return;
       const { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) msg(box, error.message === "Email not confirmed" ? "Please confirm your email first (check your inbox)." : error.message, true);
-      else d.close();
+      if (!error) return d.close();
+      if (error.message !== "Email not confirmed") return msg(box, error.message, true);
+      msg(box, "Please confirm your email first (check your inbox and spam). ", true);
+      box.append(el("button", { type: "button", class: "member-btn quiet", onclick: async () => {
+        const { error: e2 } = await sb.auth.resend({ type: "signup", email, options: { emailRedirectTo: here } });
+        msg(box, e2 ? e2.message : `Confirmation email sent again to ${email}.`, !!e2);
+      } }, ["Resend confirmation email"]));
     });
     async function signUp() {
       const { email, password } = creds();

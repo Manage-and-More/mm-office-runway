@@ -46,8 +46,12 @@ Files: `supabase/migrations/*_auth_editors.sql` (tables, policies, trigger), `ad
    covers them. Further admins are added on `/admin/`.
 6. Put the project URL and **anon** key into `config.js` → `supabase`. The anon key is meant to be public; the
    **service-role key never goes near the repo or the browser.**
-7. Supabase's built-in mailer is rate-limited (a few emails per hour) and fine for a handful of editors. If sign-ups
-   get stuck, configure custom SMTP under **Authentication → SMTP** (the reimbursement tool uses Mailjet).
+7. **Custom SMTP before inviting the team.** Supabase's built-in mailer sends only a couple of emails per hour per
+   project, so 30 people signing up in ten minutes would mostly not get their confirmation. Under
+   **Authentication → SMTP Settings** enable custom SMTP with MM's Mailjet account (the reimbursement tool already
+   uses it): host `in-v3.mailjet.com`, port `587`, username = Mailjet API key, password = Mailjet secret key, a sender
+   address on an MM domain that is verified in Mailjet. Then under **Authentication → Rate Limits** raise "emails sent"
+   to about 100 per hour. Mailjet's free plan allows 200 emails a day.
 
 ### Optional: Google
 

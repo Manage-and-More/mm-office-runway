@@ -60,7 +60,15 @@ async function main(supabase) {
     const { email, password } = credentials();
     if (!domainOk(email)) return;
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) fail(error.message === "Email not confirmed" ? "Please confirm your email first (check your inbox)." : error.message);
+    if (!error) return;
+    if (error.message !== "Email not confirmed") return fail(error.message);
+    fail("Please confirm your email first (check your inbox and spam). ");
+    const again = document.createElement("button"); again.type = "button"; again.className = "link"; again.textContent = "Resend confirmation email";
+    again.addEventListener("click", async () => {
+      const { error: e2 } = await supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: here } });
+      if (e2) fail(e2.message); else notice(`Confirmation email sent again to ${email}.`);
+    });
+    $("signin-error").append(again);
   });
 
   $("signup").addEventListener("click", async () => {
