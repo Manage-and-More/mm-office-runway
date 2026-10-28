@@ -99,6 +99,7 @@ function lock(reason) { $("locked-reason").textContent = reason; show("locked");
 const notice = (t) => { $("notice").textContent = t; $("error").textContent = ""; };
 const fail = (t) => { $("error").textContent = t; $("notice").textContent = ""; };
 const clearMessages = () => { $("notice").textContent = ""; $("error").textContent = ""; };
+const today = () => new Date().toISOString().slice(0, 10);
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // ───────────────────────────── form generated from the schema ─────────────────────────────
