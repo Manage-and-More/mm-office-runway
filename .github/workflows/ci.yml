@@ -5,14 +5,18 @@ on:
   push:
     branches: [main]
 
+# The database side (migrations, RLS, sign-in with a code) is tested in mm-platform's CI, which checks
+# out this public repo against a fresh platform stack (this repo can't read the private platform).
+# Every deploy also applies the migrations and the browser-lane rules first (pages.yml).
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
+          cache: npm
 
       - name: No photos in the repo
         # Donor photos stay on the avatar maker's computer. Only assets/ may hold images.
@@ -20,5 +24,6 @@ jobs:
           found=$(git ls-files | grep -iE '\.(jpe?g|png|heic|heif|webp|gif|bmp|tiff?)$' | grep -v '^assets/' || true)
           if [ -n "$found" ]; then echo "::error::Image files outside assets/:"; echo "$found"; exit 1; fi
 
+      - run: npm ci
       - name: Validate avatars and syntax
         run: npm run check

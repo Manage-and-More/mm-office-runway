@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { createClient } from "@supabase/supabase-js";
 import { buildMii } from "../../src/crowd/mii.js";
 import { config } from "../../config.js";
-import { supabaseSettings } from "../../src/core/supabase.js";
+import { clientOptions, supabaseSettings } from "../../src/core/supabase.js";
 import { idFromEmail, randomLook } from "../../src/core/mii-spec.js";
 
 const $ = (id) => document.getElementById(id);
@@ -23,7 +23,7 @@ const notifyParent = () => { if (embedded) parent.postMessage({ type: "mii-chang
 
 const settings = supabaseSettings(config);
 if (!settings) show("unconfigured");
-else main(createClient(settings.url, settings.anonKey));
+else main(createClient(settings.url, settings.anonKey, clientOptions(settings)));
 
 async function main(supabase) {
   const { data: { session } } = await supabase.auth.getSession();

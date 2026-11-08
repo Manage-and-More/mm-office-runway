@@ -1,5 +1,6 @@
-// Plain-fetch access to the Supabase REST API with the anon key. The public page deliberately
+// Plain-fetch access to the Supabase REST API with the publishable key. The public page deliberately
 // loads no SDK: it only ever reads two aggregate views, and Row Level Security is the guard.
+// The runway lives in schema "runway" on the shared M&M platform (config.supabase.schema).
 
 // The Supabase CLI's fixed demo anon key: identical on every machine, public by design, local only.
 const LOCAL_STACK = {
@@ -8,9 +9,9 @@ const LOCAL_STACK = {
 };
 
 /**
- * Resolve the Supabase settings. On localhost, open any page with `?local` once to use the stack from
- * `npx supabase start` (remembered in localStorage), and `?live` to go back. See docs/AUTH.md.
- * @returns {{ url: string, anonKey: string } | null}
+ * Resolve the Supabase settings. On localhost, open any page with `?local` once to use the local
+ * mm-platform stack (remembered in localStorage), and `?live` to go back. See docs/DATABASE.md.
+ * @returns {{ url: string, anonKey: string, schema: string } | null}
  */
 export function supabaseSettings(config) {
   let settings = config.supabase || null;
@@ -23,14 +24,19 @@ export function supabaseSettings(config) {
       if (local?.url && local?.anonKey) settings = { ...settings, ...local };
     } catch { /* ignore a malformed override */ }
   }
-  return settings?.url && settings?.anonKey ? settings : null;
+  return settings?.url && settings?.anonKey ? { schema: "runway", ...settings } : null;
+}
+
+/** Options for supabase-js `createClient(url, key, options)`: point `.from()` at the runway schema. */
+export function clientOptions(settings) {
+  return { db: { schema: settings.schema } };
 }
 
 /** GET a REST path such as `public_runway?select=*`; throws on HTTP errors. */
 export async function supabaseGet(settings, path) {
   const res = await fetch(`${settings.url.replace(/\/$/, "")}/rest/v1/${path}`, {
     cache: "no-store",
-    headers: { apikey: settings.anonKey, Authorization: `Bearer ${settings.anonKey}`, Accept: "application/json" },
+    headers: { apikey: settings.anonKey, Accept: "application/json", "Accept-Profile": settings.schema },
   });
   if (!res.ok) throw new Error(`Supabase HTTP ${res.status} for ${path}`);
   return res.json();

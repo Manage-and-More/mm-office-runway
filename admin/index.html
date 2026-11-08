@@ -36,39 +36,29 @@
 
     <section data-view="unconfigured" hidden>
       <h2>Supabase isn't configured yet</h2>
-      <p>Set <code>config.supabase.url</code> and <code>anonKey</code> in <code>config.js</code>, or for local dev follow <code>docs/AUTH.md</code>.</p>
+      <p>Set <code>config.supabase.url</code> and <code>anonKey</code> in <code>config.js</code>, or for local dev follow <code>docs/DATABASE.md</code>.</p>
     </section>
 
     <section data-view="signed-out" hidden>
       <h2>Sign in to change the runway data</h2>
-      <p class="muted">Use your Manage and More address (<span id="domain-hint"></span>). The public page needs no login.</p>
+      <p class="muted">Use your Manage and More address (<span id="domain-hint"></span>). We email you a 6-digit code: no password. The public page needs no login.</p>
 
-      <form id="password-form" class="stack" autocomplete="on">
-        <label>Email <input type="email" id="email" name="email" placeholder="first.last@manageandmore.de" required autocomplete="username"></label>
-        <label>Password <input type="password" id="password" name="password" minlength="8" required autocomplete="current-password"></label>
+      <form id="email-form" class="stack" autocomplete="on">
+        <label>Email <input type="email" id="email" name="email" placeholder="first.last@manageandmore.de" required autocomplete="email"></label>
+        <div class="row"><button type="submit" class="primary" id="send-code">Email me a code</button></div>
+      </form>
+
+      <form id="code-form" class="stack" hidden>
+        <p>We sent a code to <strong id="code-email"></strong>. It works for 10 minutes.</p>
+        <label>Code <input type="text" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required></label>
         <div class="row">
-          <button type="submit" class="primary" id="login">Log in</button>
-          <button type="button" id="signup">Create account</button>
-          <button type="button" class="link" id="forgot">Forgot password?</button>
+          <button type="submit" class="primary" id="verify-code">Sign in</button>
+          <button type="button" class="link" id="other-email">Use another email</button>
         </div>
       </form>
 
-      <button type="button" class="google" id="signin-google" hidden>
-        <svg aria-hidden="true" viewBox="0 0 48 48" width="20" height="20"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.1 1.4-4.9 2.3-8.2 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
-        Sign in with Google
-      </button>
-
       <p class="notice" id="signin-notice" role="status"></p>
       <p class="error" id="signin-error" role="alert"></p>
-    </section>
-
-    <section data-view="new-password" hidden>
-      <h2>Choose a new password</h2>
-      <form id="new-password-form" class="stack">
-        <label>New password <input type="password" id="new-password" minlength="8" required autocomplete="new-password"></label>
-        <div class="row"><button type="submit" class="primary">Save password</button></div>
-      </form>
-      <p class="error" id="new-password-error" role="alert"></p>
     </section>
 
     <section data-view="not-admin" hidden>
@@ -128,7 +118,7 @@
 
       <div id="admin-tools" hidden>
         <h3>Admins</h3>
-        <p class="muted">Admins manage this list and the allowed sign-in domains. Everyone else who signs in with an MM account is an editor automatically.</p>
+        <p class="muted">Admins manage this list. Everyone else who signs in with an MM account is an editor automatically. Who may sign in at all is decided for every M&amp;M app at once, in mm-platform.</p>
         <div class="table-wrap"><table class="editors">
           <thead><tr><th>Email</th><th>Added by</th><th></th></tr></thead>
           <tbody id="admins-rows"></tbody>
@@ -139,8 +129,6 @@
         </form>
         <p class="error" id="admins-error" role="alert"></p>
 
-        <h3>Allowed sign-in domains</h3>
-        <ul id="domains"></ul>
       </div>
     </section>
 
