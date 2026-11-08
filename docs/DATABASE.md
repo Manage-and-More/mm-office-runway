@@ -1,7 +1,9 @@
 # Database (MAN-71)
 
-The runway numbers and the donor Miis live in Supabase (Postgres). The public page reads two aggregate
-views with the anon key; editors change the underlying tables on `/admin/` (see [AUTH.md](AUTH.md)).
+The runway numbers and the donor Miis live in schema `runway` of the shared M&M Supabase project
+([mm-platform](https://github.com/Manage-and-More/mm-platform), browser lane). The public page reads two aggregate
+views with the publishable key; editors change the underlying tables on the page and on `/admin/` (see
+[AUTH.md](AUTH.md)).
 
 ## Tables
 
@@ -14,7 +16,7 @@ views with the anon key; editors change the underlying tables on `/admin/` (see 
 | `moments` | Members' highlights ("5 lecture visits"), one line of text with a date; table name `moments`. Never public | editors | the owner, or admins for anyone (delete: owner or admins) |
 | `avatar_schema` | The `AvatarSpec` JSON schema, so the database validates what the crowd renders | everyone | migrations only |
 
-"Editors" means anyone signed in with a Manage and More account (see [AUTH.md](AUTH.md)).
+"Editors" means anyone signed in with an address the platform allows (see [AUTH.md](AUTH.md)).
 
 Every row records `created_by` (the editor's email) and `updated_at` automatically.
 
@@ -39,8 +41,8 @@ So adding a payment always moves the number, and reconciling never double-counts
   stripped. Nothing else: no names, no owner emails, no payment links.
 
 These two views run with the owner's rights on purpose. The base tables have Row Level Security with
-no policy for anonymous users, so the anon key cannot read a single payment or avatar row directly.
-`scripts/check-policies.sh` proves this against a local stack.
+no policy for anonymous users, so the publishable key cannot read a single payment or avatar row directly.
+`e2e/runway.spec.mjs` proves this against a local stack on every PR.
 
 ## Source order on the page
 
@@ -51,14 +53,19 @@ live page never goes blank during the cut-over, and the sheet can be retired lat
 
 ## Changing the schema
 
-- Add a file in `supabase/migrations/` (`npx supabase migration new <name>`), never edit the Studio.
-- Apply locally with `npx supabase db reset`, in production with `npx supabase db push`.
+- Add a file in `db/migrations/` named `<UTC timestamp>_<what>.sql` (e.g. `20261201120000_add_goal.sql`). Never
+  change the database in the Supabase dashboard, and never edit a migration that is already on `main`.
+- Write it against schema `runway` (`create table runway.x …`), with RLS on, explicit grants and a policy that
+  checks the person (`runway.is_editor()`, `owner_email = runway.current_email()`, `runway.is_admin()`).
+- `npm run db:migrate` applies it locally; CI applies it to production before each deploy. Both fail if the
+  schema breaks the browser-lane rules (mm-platform `docs/SECURITY.md` § 1).
 - An `AvatarSpec` contract change (new hairstyle, …) edits `src/contracts/avatar.schema.json` **and** needs a
   migration with the output of `node scripts/avatar-schema-sql.mjs`. `npm run check` fails until both match.
 
 ## First numbers in production
 
-After the project exists and the migrations are pushed, sign in on `/admin/` and enter, once:
+(Done in 2026: the data moved over from the runway's earlier Supabase project with mm-platform's
+`npm run app:import`.) For a fresh start, sign in on `/admin/` and enter, once:
 
 1. **Monthly cost**: one number. Saving it starts a new row from today; earlier rows stay as history.
 2. **Bank balance**: one number, today's balance. Saving it records the moment, and payments entered
@@ -70,6 +77,16 @@ reconcile with the bank. Every row can be edited (payments) or deleted (all) to 
 
 ## Local development
 
-`npx supabase start` applies the migrations and `supabase/seed.sql`: an opening balance ten days ago,
-two payments, the sample Miis, and the editors from AUTH.md. Point the page at it from the browser
-console (see AUTH.md, "Local development"); the Simulate panel's "back to live data" re-reads the database.
+Run the shared platform locally once (mm-platform `README.md` → local setup; needs Docker), then here:
+
+```bash
+npm ci
+export DATABASE_URL=postgresql://runway_app:local@127.0.0.1:54322/postgres
+npm run db:migrate && npm run db:seed   # schema + sample numbers, Miis, and admin@example.com as admin
+PORT=8090 npm run dev
+```
+
+Open **http://localhost:8090/admin/?local** once: `?local` points every page on that origin at the local stack
+(remembered in the browser), `?live` switches back to `config.js`. Sign in as `admin@example.com` (admin) or any
+`@example.com` address (editor); the codes land in the local inbox at http://127.0.0.1:54324, never in a real
+mailbox. `npm run test:e2e` runs the same checks as CI.

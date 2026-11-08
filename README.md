@@ -27,7 +27,7 @@ We build this in four parallel workstreams (core, logo, crowd, avatars), each in
 
 ## Data source
 
-The numbers come from Supabase (`config.js` → `supabase`). MM members sign in on the page itself (top right)
+The numbers come from the shared M&M Supabase project, schema `runway` (`config.js` → `supabase`). MM members sign in on the page itself (top right, with an emailed code)
 to add payments and Miis; admins keep costs, balances and corrections on [`/admin/`](admin/). The page reads
 only the derived totals from a public view.
 See [docs/DATABASE.md](docs/DATABASE.md) for the tables and the funds rule, and [docs/AUTH.md](docs/AUTH.md)

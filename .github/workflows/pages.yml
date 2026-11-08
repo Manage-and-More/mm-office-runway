@@ -15,16 +15,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  migrate:
+    name: Database migrations (runway_app on mm-platform)
+    runs-on: ubuntu-latest
+    # DATABASE_URL lives only here (set by a maintainer: mm-platform npm run app:credentials -- runway).
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Also fails the deploy if the schema breaks the browser-lane rules.
+      - run: npm run db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
   deploy:
+    needs: migrate
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
       - name: Build avatar index
         run: npm run avatars
       - uses: actions/configure-pages@v5
