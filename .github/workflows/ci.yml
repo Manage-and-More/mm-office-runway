@@ -10,7 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: Manage-and-More/mm-platform/.github/actions/secret-scan@main
+      # mm-platform is private and this repo is public, so its shared actions are read through a
+      # read-only deploy key (secret MM_PLATFORM_DEPLOY_KEY; revoke it on mm-platform → Settings → Deploy keys).
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: Manage-and-More/mm-platform
+          ssh-key: ${{ secrets.MM_PLATFORM_DEPLOY_KEY }}
+          path: .mm-platform
+      - uses: ./.mm-platform/.github/actions/secret-scan
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
@@ -31,9 +38,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # mm-platform is private and this repo is public, so its shared actions are read through a
+      # read-only deploy key (secret MM_PLATFORM_DEPLOY_KEY; revoke it on mm-platform → Settings → Deploy keys).
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: Manage-and-More/mm-platform
+          ssh-key: ${{ secrets.MM_PLATFORM_DEPLOY_KEY }}
+          path: .mm-platform
       # A fresh local mm-platform stack (Postgres, Auth, Data API, inbox) with schema "runway".
       - id: db
-        uses: Manage-and-More/mm-platform/.github/actions/local-db@main
+        uses: ./.mm-platform/.github/actions/local-db
         with:
           app: runway
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0

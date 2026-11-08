@@ -11,3 +11,6 @@ tools/avatar-maker/photos/
 # Playwright
 playwright-report/
 test-results/
+
+# mm-platform, checked out by CI for its shared actions
+.mm-platform/
