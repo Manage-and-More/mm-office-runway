@@ -5,19 +5,14 @@ on:
   push:
     branches: [main]
 
+# The database side (migrations, RLS, sign-in with a code) is tested in mm-platform's CI, which checks
+# out this public repo against a fresh platform stack (this repo can't read the private platform).
+# Every deploy also applies the migrations and the browser-lane rules first (pages.yml).
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      # mm-platform is private and this repo is public, so its shared actions are read through a
-      # read-only deploy key (secret MM_PLATFORM_DEPLOY_KEY; revoke it on mm-platform → Settings → Deploy keys).
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          repository: Manage-and-More/mm-platform
-          ssh-key: ${{ secrets.MM_PLATFORM_DEPLOY_KEY }}
-          path: .mm-platform
-      - uses: ./.mm-platform/.github/actions/secret-scan
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
@@ -32,42 +27,3 @@ jobs:
       - run: npm ci
       - name: Validate avatars and syntax
         run: npm run check
-
-  platform:
-    name: Database, RLS and sign-in on the M&M platform
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      # mm-platform is private and this repo is public, so its shared actions are read through a
-      # read-only deploy key (secret MM_PLATFORM_DEPLOY_KEY; revoke it on mm-platform → Settings → Deploy keys).
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          repository: Manage-and-More/mm-platform
-          ssh-key: ${{ secrets.MM_PLATFORM_DEPLOY_KEY }}
-          path: .mm-platform
-      # A fresh local mm-platform stack (Postgres, Auth, Data API, inbox) with schema "runway".
-      - id: db
-        uses: ./.mm-platform/.github/actions/local-db
-        with:
-          app: runway
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - name: Migrations (as runway_app) and the browser-lane rules
-        run: npm run db:migrate && npm run db:migrate
-        env:
-          DATABASE_URL: ${{ steps.db.outputs.database-url }}
-      - run: npm run db:seed
-        env:
-          DATABASE_URL: ${{ steps.db.outputs.database-url }}
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
-        env:
-          MAIL_URL: ${{ steps.db.outputs.mail-url }}
-      - if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: playwright-report
-          path: playwright-report
