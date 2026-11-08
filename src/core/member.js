@@ -1,8 +1,9 @@
 // Member bar on the public page: sign in without leaving the 3D page, then add a payment or open the
 // Mii editor in a popup. Everyone signed in with an MM account is an editor; the admin page (/admin/)
 // stays admins-only. supabase-js loads lazily, so public viewers never download it.
-import { supabaseSettings } from "./supabase.js";
+import { clientOptions, supabaseSettings } from "./supabase.js";
 import { ensureMii } from "./mii-spec.js";
+import { normalizeEmail, sendCode, signOut, verifyCode } from "./sign-in.js";
 
 const el = (tag, attrs = {}, children = []) => {
   const node = document.createElement(tag);
@@ -37,7 +38,7 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
   async function client() {
     if (supabase) return supabase;
     const { createClient } = await import("@supabase/supabase-js");
-    supabase = createClient(settings.url, settings.anonKey);
+    supabase = createClient(settings.url, settings.anonKey, clientOptions(settings));
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === "INITIAL_SESSION") return;
       setTimeout(() => sync(session), 0); // never call supabase-js inside its own callback
@@ -99,7 +100,7 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
       playHighlights ? el("button", { type: "button", class: "member-btn", onclick: () => openHighlights() }, ["🎬 Recap"]) : "",
       isAdmin ? el("a", { class: "member-btn", href: "admin/" }, ["🛠 Admin"]) : "",
       el("span", { class: "member-who", title: email }, [email.split("@")[0]]),
-      el("button", { type: "button", class: "member-btn quiet", onclick: async () => { await (await client()).auth.signOut(); } }, ["Sign out"]),
+      el("button", { type: "button", class: "member-btn quiet", onclick: async () => { await signOut(await client()); } }, ["Sign out"]),
     );
   }
 
@@ -119,45 +120,42 @@ export function createMemberBar(config, { onPaymentAdded, onMoment, people, play
 
   async function openSignIn() {
     const sb = await client();
-    const emailIn = el("input", { type: "email", required: true, autocomplete: "username", placeholder: domains[0] ? `first.last@${domains[0]}` : "email" });
-    const passIn = el("input", { type: "password", required: true, minlength: 8, autocomplete: "current-password" });
+    const emailIn = el("input", { type: "email", required: true, autocomplete: "email", placeholder: domains[0] ? `first.last@${domains[0]}` : "email" });
+    const codeIn = el("input", { type: "text", required: true, inputmode: "numeric", autocomplete: "one-time-code", maxlength: 7, pattern: "[0-9 ]{6,7}" });
     const box = el("p", { class: "member-notice" });
-    const form = el("form", { class: "member-form" }, [
-      el("p", { class: "muted" }, [`Use your Manage and More address${domains.length ? ` (@${domains.join(", @")})` : ""}.`]),
-      el("label", {}, ["Email", emailIn]), el("label", {}, ["Password", passIn]),
-      el("div", { class: "member-row" }, [
-        el("button", { type: "submit", class: "member-btn primary" }, ["Log in"]),
-        el("button", { type: "button", class: "member-btn", onclick: signUp }, ["Create account"]),
-        el("button", { type: "button", class: "member-btn quiet", onclick: forgot }, ["Forgot password?"]),
-      ]),
-      box,
+    let email = "";
+    const emailForm = el("form", { class: "member-form" }, [
+      el("p", { class: "muted" }, [`Use your Manage and More address${domains.length ? ` (@${domains.join(", @")})` : ""}. We email you a 6-digit code: no password.`]),
+      el("label", {}, ["Email", emailIn]),
+      el("div", { class: "member-row" }, [el("button", { type: "submit", class: "member-btn primary" }, ["Email me a code"])]),
     ]);
-    const d = dialog("Sign in", form);
-    const creds = () => ({ email: emailIn.value.trim().toLowerCase(), password: passIn.value });
-    const domainOk = (e) => { const dom = e.split("@")[1] || ""; if (domains.length && !domains.includes(dom)) { msg(box, `Only @${domains.join(" and @")} addresses can sign in.`, true); return false; } return true; };
-    form.addEventListener("submit", async (e) => {
+    const sentTo = el("strong");
+    const codeForm = el("form", { class: "member-form", hidden: true }, [
+      el("p", {}, ["We sent a code to ", sentTo, ". It works for 10 minutes."]),
+      el("label", {}, ["Code", codeIn]),
+      el("div", { class: "member-row" }, [
+        el("button", { type: "submit", class: "member-btn primary" }, ["Sign in"]),
+        el("button", { type: "button", class: "member-btn quiet", onclick: () => { codeForm.hidden = true; emailForm.hidden = false; msg(box, ""); } }, ["Use another email"]),
+      ]),
+    ]);
+    const d = dialog("Sign in", el("div", {}, [emailForm, codeForm, box]));
+    emailForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const { email, password } = creds();
-      if (!domainOk(email)) return;
-      const { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) msg(box, error.message === "Email not confirmed" ? "Please confirm your email first (check your inbox)." : error.message, true);
+      email = normalizeEmail(emailIn.value);
+      const problem = await sendCode(sb, email);
+      if (problem) return msg(box, problem, true);
+      sentTo.textContent = email;
+      msg(box, "");
+      emailForm.hidden = true;
+      codeForm.hidden = false;
+      codeIn.focus();
+    });
+    codeForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const problem = await verifyCode(sb, email, codeIn.value);
+      if (problem) msg(box, problem, true);
       else d.close();
     });
-    async function signUp() {
-      const { email, password } = creds();
-      if (!form.reportValidity() || !domainOk(email)) return;
-      const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: here } });
-      if (error) return msg(box, error.message.includes("Database error") ? "This address can't be used to sign in." : error.message, true);
-      if (data.user && data.user.identities?.length === 0) return msg(box, "This address already has an account. Log in, or use \"Forgot password?\".");
-      msg(box, `Almost there: open the confirmation link we sent to ${email}, then log in.`);
-    }
-    async function forgot() {
-      const { email } = creds();
-      if (!email) return msg(box, "Enter your email first.", true);
-      // The reset link opens the admin page, which has the "choose a new password" screen.
-      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: new URL("admin/", here).href });
-      msg(box, error ? error.message : `If ${email} has an account, a reset link is on its way.`, !!error);
-    }
   }
 
   async function openMoment() {

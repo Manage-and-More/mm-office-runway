@@ -1,10 +1,12 @@
-// Admin page: sign in with a Manage and More account (Supabase Auth). Admins (public.admins) get the
-// full lists with edit/delete plus the admin list; everyone else adds payments and Miis on the runway
-// page. Nothing here grants access: Row Level Security does (supabase/migrations).
+// Admin page: sign in with a Manage and More account (the shared M&M sign-in, a 6-digit email code).
+// Admins (runway.admins) get the full lists with edit/delete plus the admin list; everyone else adds
+// payments and Miis on the runway page. Nothing here grants access: Row Level Security does
+// (db/migrations).
 import { createClient } from "@supabase/supabase-js";
 import { config } from "../config.js";
-import { supabaseSettings } from "../src/core/supabase.js";
+import { clientOptions, supabaseSettings } from "../src/core/supabase.js";
 import { ensureMii } from "../src/core/mii-spec.js";
+import { normalizeEmail, sendCode, signOut, verifyCode } from "../src/core/sign-in.js";
 
 const $ = (id) => document.getElementById(id);
 const views = [...document.querySelectorAll("[data-view]")];
@@ -12,112 +14,70 @@ function show(name) {
   for (const v of views) v.hidden = v.dataset.view !== name;
 }
 
-// A password-reset link lands here with type=recovery in the hash. Read it before supabase-js
-// consumes the hash, because its PASSWORD_RECOVERY event fires before we can subscribe to it.
-const arrivedForRecovery = /type=recovery/.test(location.hash);
-
 const s = supabaseSettings(config);
 if (!s?.url || !s?.anonKey) {
   show("unconfigured");
 } else {
-  main(createClient(s.url, s.anonKey));
+  main(createClient(s.url, s.anonKey, clientOptions(s)));
 }
 
 async function main(supabase) {
-  let recovering = arrivedForRecovery; // cleared once a new password is saved
   let dataBound = false; // the data forms get their listeners once
   const euro = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" });
   const today = () => new Date().toISOString().slice(0, 10);
   // Subscribe first, then read the session. Defer the render: calling other supabase-js methods
   // inside this callback deadlocks on the auth lock. INITIAL_SESSION is rendered via getSession() below.
   supabase.auth.onAuthStateChange((event, next) => {
-    if (event === "PASSWORD_RECOVERY") recovering = true;
     if (event !== "INITIAL_SESSION") setTimeout(() => render(next), 0);
   });
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error) console.warn("Session check failed:", error);
   render(session);
 
-  const here = location.origin + location.pathname; // the page itself; allow-listed in Supabase Auth
   const domains = s.allowedEmailDomains || [];
   $("domain-hint").textContent = domains.map((d) => "@" + d).join(", ") || "your MM address";
   const notice = (text) => { $("signin-notice").textContent = text; $("signin-error").textContent = ""; };
   const fail = (text) => { $("signin-error").textContent = text; $("signin-notice").textContent = ""; };
+  const step = (name) => { $("email-form").hidden = name !== "email"; $("code-form").hidden = name !== "code"; };
+  let pendingEmail = "";
 
-  // Friendly early check. The database trigger is the real guard and rejects the sign-up anyway.
-  function domainOk(email) {
-    const dom = email.split("@")[1] || "";
-    if (domains.length && !domains.includes(dom)) {
-      fail(`Only ${domains.map((d) => "@" + d).join(" and ")} addresses can sign in.`);
-      return false;
-    }
-    return true;
-  }
-  const credentials = () => ({ email: $("email").value.trim().toLowerCase(), password: $("password").value });
-
-  $("password-form").addEventListener("submit", async (e) => {
+  $("email-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const { email, password } = credentials();
-    if (!domainOk(email)) return;
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) fail(error.message === "Email not confirmed" ? "Please confirm your email first (check your inbox)." : error.message);
+    pendingEmail = normalizeEmail($("email").value);
+    $("send-code").disabled = true;
+    const problem = await sendCode(supabase, pendingEmail);
+    $("send-code").disabled = false;
+    if (problem) return fail(problem);
+    $("code-email").textContent = pendingEmail;
+    notice("");
+    step("code");
+    $("code").focus();
   });
 
-  $("signup").addEventListener("click", async () => {
-    const { email, password } = credentials();
-    if (!$("password-form").reportValidity() || !domainOk(email)) return;
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: here } });
-    if (error) return fail(error.message.includes("Database error") ? "This address can't be used to sign in." : error.message);
-    // Supabase returns a user with no identities when the address already exists (to avoid leaking accounts).
-    if (data.user && data.user.identities?.length === 0) return notice("This address already has an account. Log in, or use \"Forgot password?\".");
-    notice(`Almost there: open the confirmation link we sent to ${email}, then log in.`);
-  });
-
-  $("forgot").addEventListener("click", async () => {
-    const { email } = credentials();
-    if (!email) return fail("Enter your email first.");
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: here });
-    if (error) fail(error.message); else notice(`If ${email} has an account, a reset link is on its way.`);
-  });
-
-  $("new-password-form").addEventListener("submit", async (e) => {
+  $("code-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const { error } = await supabase.auth.updateUser({ password: $("new-password").value });
-    if (error) $("new-password-error").textContent = error.message;
-    else { recovering = false; render((await supabase.auth.getSession()).data.session); }
+    $("verify-code").disabled = true;
+    const problem = await verifyCode(supabase, pendingEmail, $("code").value);
+    $("verify-code").disabled = false;
+    if (problem) fail(problem); // on success onAuthStateChange renders the signed-in view
   });
+
+  $("other-email").addEventListener("click", () => { $("code").value = ""; notice(""); step("email"); $("email").focus(); });
 
   $("signout").addEventListener("click", async () => {
-    await supabase.auth.signOut();
+    await signOut(supabase);
+    step("email");
     render(null);
   });
-
-  // Google: built, hidden until an MM-owned OAuth client exists (config.supabase.googleSignIn).
-  $("signin-google").hidden = !s.googleSignIn;
-  $("signin-google").addEventListener("click", async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: here, queryParams: { hd: domains[0] || "", prompt: "select_account" } },
-    });
-    if (error) fail(error.message);
-  });
-
-  // The URL may carry an error from an email link or OAuth round-trip (expired link, rejected account, …).
-  const params = new URLSearchParams(location.hash.slice(1) || location.search);
-  if (params.get("error_description")) {
-    fail(decodeURIComponent(params.get("error_description").replace(/\+/g, " ")));
-    history.replaceState(null, "", location.pathname);
-  }
 
   async function render(session) {
     $("who").hidden = !session;
     if (!session) { show("signed-out"); return; }
-    if (recovering) { show("new-password"); return; }
     const email = (session.user.email || "").toLowerCase();
     $("who-email").textContent = email;
 
     // Every signed-in MM account is an editor and adds payments and Miis on the runway page itself.
-    // This page, with edit/delete and the admin list, is for admins (the rows of public.admins).
+    // This page, with edit/delete and the admin list, is for admins (the rows of runway.admins).
     const { data: admins, error } = await supabase.from("admins").select("email, added_by").order("email");
     if (error) { console.error("Admins lookup failed:", error); fail(error.message); return; }
     const isAdmin = admins.some((a) => a.email === email);
@@ -303,9 +263,6 @@ async function main(supabase) {
         }
         return tr;
       }));
-      const { data: domains, error } = await supabase.from("allowed_email_domains").select("domain").order("domain");
-      if (error) { errorEl.textContent = error.message; return; }
-      $("domains").replaceChildren(...domains.map((d) => { const li = document.createElement("li"); li.textContent = d.domain; return li; }));
     }
 
     $("add-admin").onsubmit = async (e) => {

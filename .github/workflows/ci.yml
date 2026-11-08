@@ -9,10 +9,12 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: Manage-and-More/mm-platform/.github/actions/secret-scan@main
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
+          cache: npm
 
       - name: No photos in the repo
         # Donor photos stay on the avatar maker's computer. Only assets/ may hold images.
@@ -20,5 +22,38 @@ jobs:
           found=$(git ls-files | grep -iE '\.(jpe?g|png|heic|heif|webp|gif|bmp|tiff?)$' | grep -v '^assets/' || true)
           if [ -n "$found" ]; then echo "::error::Image files outside assets/:"; echo "$found"; exit 1; fi
 
+      - run: npm ci
       - name: Validate avatars and syntax
         run: npm run check
+
+  platform:
+    name: Database, RLS and sign-in on the M&M platform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # A fresh local mm-platform stack (Postgres, Auth, Data API, inbox) with schema "runway".
+      - id: db
+        uses: Manage-and-More/mm-platform/.github/actions/local-db@main
+        with:
+          app: runway
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Migrations (as runway_app) and the browser-lane rules
+        run: npm run db:migrate && npm run db:migrate
+        env:
+          DATABASE_URL: ${{ steps.db.outputs.database-url }}
+      - run: npm run db:seed
+        env:
+          DATABASE_URL: ${{ steps.db.outputs.database-url }}
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          MAIL_URL: ${{ steps.db.outputs.mail-url }}
+      - if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-report
+          path: playwright-report

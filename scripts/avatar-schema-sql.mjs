@@ -7,11 +7,11 @@ import { readFile, readdir } from "node:fs/promises";
 const contract = JSON.parse(await readFile(new URL("../src/contracts/avatar.schema.json", import.meta.url), "utf8"));
 delete contract.$id; // a relative $id is not a valid base URL for the database's validator (pg_jsonschema)
 const canonical = JSON.stringify(contract);
-const upsert = `insert into public.avatar_schema (id, schema) values (true, $avatar_schema$${canonical}$avatar_schema$::jsonb)
+const upsert = `insert into runway.avatar_schema (id, schema) values (true, $avatar_schema$${canonical}$avatar_schema$::jsonb)
 on conflict (id) do update set schema = excluded.schema, updated_at = now();`;
 
 if (process.argv.includes("--check")) {
-  const dir = new URL("../supabase/migrations/", import.meta.url);
+  const dir = new URL("../db/migrations/", import.meta.url);
   const files = (await readdir(dir)).filter((f) => f.endsWith(".sql")).sort().reverse();
   for (const file of files) {
     const sql = await readFile(new URL(file, dir), "utf8");
