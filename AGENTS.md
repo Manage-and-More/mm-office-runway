@@ -67,7 +67,7 @@ Rules:
 
 - Branch from `main` as `<workstream>/<short-topic>`, e.g. `logo/shatter-anim`, `crowd/walk-cycle`, `avatars/batch-1`, `core/sheet-columns`.
 - Keep PRs small. One PR stays within one workstream's paths, or it's a contract PR.
-- `npm run check` must pass, and CI runs it on every PR.
+- `npm run check` must pass. The `pre-push` git hook runs it for you (`npm install` switches it on); never push with `--no-verify`. CI runs it again on every PR.
 - Include a screenshot or short clip for visual changes, ideally using `?debug` at high and low funds.
 - Squash-merge into `main`. Every merge to `main` deploys.
 

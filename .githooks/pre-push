@@ -1,0 +1,7 @@
+#!/bin/sh
+# Runs before every `git push`: the same checks as CI (avatars, syntax, unit tests), so mistakes stop
+# here instead of becoming a red CI run. Installed by `npm install` / `npm ci` (core.hooksPath).
+# Agents: never skip it. Humans, only in an emergency: git push --no-verify
+set -e
+echo "▸ pre-push: npm run check"
+npm run -s check
