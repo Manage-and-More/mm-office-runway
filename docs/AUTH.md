@@ -4,9 +4,9 @@ Only Manage and More people may change the runway data. The public 3D page never
 
 ## How it works
 
-The runway uses the **shared M&M sign-in** of [mm-platform](https://github.com/Manage-and-More/mm-platform): one
-account per person for every M&M app, and no passwords. You type your MM address, get a 6-digit code by email, and
-type it in. Who may sign in at all (the allowed email domains) is decided once for every M&M app, in mm-platform.
+The runway uses the **shared MM sign-in** of [mm-platform](https://github.com/Manage-and-More/mm-platform): one
+account per person for every MM app, and no passwords. You type your MM address, get a 6-digit code by email, and
+type it in. Who may sign in at all (the allowed email domains) is decided once for every MM app, in mm-platform.
 
 ```
 MM member ──email──▶ code by email ──▶ Supabase Auth (mm-platform) ──JWT──▶ Data API + Row Level Security

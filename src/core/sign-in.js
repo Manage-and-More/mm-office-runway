@@ -1,4 +1,4 @@
-// Sign-in with a 6-digit email code: the shared M&M sign-in (mm-platform), one account for every M&M
+// Sign-in with a 6-digit email code: the shared MM sign-in (mm-platform), one account for every MM
 // app, no passwords. The platform decides who may sign in at all; these helpers only turn its answers
 // into friendly messages. Used by the member bar (main page) and the admin page.
 
@@ -22,5 +22,5 @@ export async function verifyCode(supabase, email, code) {
   return error ? "That code is wrong or has expired." : null;
 }
 
-/** Ends this browser's session only. The default ("global") would sign the person out of every M&M app. */
+/** Ends this browser's session only. The default ("global") would sign the person out of every MM app. */
 export const signOut = (supabase) => supabase.auth.signOut({ scope: "local" });
