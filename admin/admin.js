@@ -1,4 +1,4 @@
-// Admin page: sign in with a Manage and More account (the shared M&M sign-in, a 6-digit email code).
+// Admin page: sign in with a Manage and More account (the shared MM sign-in, a 6-digit email code).
 // Admins (runway.admins) get the full lists with edit/delete plus the admin list; everyone else adds
 // payments and Miis on the runway page. Nothing here grants access: Row Level Security does
 // (db/migrations).

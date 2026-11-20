@@ -1,6 +1,6 @@
 # Database (MAN-71)
 
-The runway numbers and the donor Miis live in schema `runway` of the shared M&M Supabase project
+The runway numbers and the donor Miis live in schema `runway` of the shared MM Supabase project
 ([mm-platform](https://github.com/Manage-and-More/mm-platform), browser lane). The public page reads two aggregate
 views with the publishable key; editors change the underlying tables on the page and on `/admin/` (see
 [AUTH.md](AUTH.md)).

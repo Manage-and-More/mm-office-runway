@@ -11,8 +11,8 @@ export const config = {
 
   avatarIndexUrl: "data/avatar-index.json",
 
-  // Supabase: the shared M&M platform (mm-platform), schema "runway", browser lane (MAN-88). The
-  // publishable key is public by design: Row Level Security is the guard. Sign-in is the shared M&M
+  // Supabase: the shared MM platform (mm-platform), schema "runway", browser lane (MAN-88). The
+  // publishable key is public by design: Row Level Security is the guard. Sign-in is the shared MM
   // sign-in with a 6-digit email code. Leave `url` empty to run without Supabase; for local dev see
   // docs/DATABASE.md.
   supabase: {

@@ -4,7 +4,7 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, …) and for huma
 
 ## What this is
 
-A static 3D page showing how long Manage and More (a student-led org) can keep its crowdfunded office. The M&M logo stands in the middle and Mii-style donor avatars walk around it. When funds drop, the logo breaks and the Miis panic. When money comes in, the logo repairs itself and the Miis calm down.
+A static 3D page showing how long Manage and More (a student-led org) can keep its crowdfunded office. The MM logo stands in the middle and Mii-style donor avatars walk around it. When funds drop, the logo breaks and the Miis panic. When money comes in, the logo repairs itself and the Miis calm down.
 
 Live at https://manage-and-more.github.io/mm-office-runway/ and deployed from `main` by GitHub Actions. Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before making any structural change.
 
@@ -28,7 +28,7 @@ Four people work in parallel. Each workstream mostly edits its own paths, which 
 | Workstream | Owns | Delivers |
 |---|---|---|
 | **Core / integration** (@mousamax) | `src/core/`, `src/contracts/`, `src/modules.js`, `index.html`, `style.css`, `config.js`, `data.json`, `scripts/`, `.github/`, docs | Stage, data → `RunwayState`, HUD, debug panel, deploy |
-| **Logo** | `src/logo/`, `assets/logo/` | 3D M&M logo that breaks and repairs with funds. Brief: [src/logo/README.md](src/logo/README.md) |
+| **Logo** | `src/logo/`, `assets/logo/` | 3D MM logo that breaks and repairs with funds. Brief: [src/logo/README.md](src/logo/README.md) |
 | **Crowd (Miis)** | `src/crowd/`, `assets/crowd/` | `buildMii(spec)` plus walking and mood animation. Brief: [src/crowd/README.md](src/crowd/README.md) |
 | **Avatars** | `tools/avatar-maker/`, `data/avatars/` | Photo → `AvatarSpec` JSON, one file per donor. Brief: [tools/avatar-maker/README.md](tools/avatar-maker/README.md) |
 

@@ -1,4 +1,4 @@
-// The runway on the shared M&M platform, end to end against the local stack: the public page's
+// The runway on the shared MM platform, end to end against the local stack: the public page's
 // anonymous reads, Row Level Security, and sign-in with an emailed code on the admin page.
 import { expect, test } from "@playwright/test";
 

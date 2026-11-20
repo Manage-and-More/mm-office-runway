@@ -1,6 +1,6 @@
 // Plain-fetch access to the Supabase REST API with the publishable key. The public page deliberately
 // loads no SDK: it only ever reads two aggregate views, and Row Level Security is the guard.
-// The runway lives in schema "runway" on the shared M&M platform (config.supabase.schema).
+// The runway lives in schema "runway" on the shared MM platform (config.supabase.schema).
 
 // The Supabase CLI's fixed demo anon key: identical on every machine, public by design, local only.
 const LOCAL_STACK = {
